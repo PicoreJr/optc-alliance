@@ -30,42 +30,61 @@ export const CONFIG = {
 };
 
 // ------------------------------------------------------------
-//  Formats d'équipe (premier jet, facile à ajuster)
-//  slots : rôle de chaque emplacement ; 'friend' = ami capitaine
-//  groups.min / groups.max : nombre d'équipes dans une composition
+//  Formats d'équipe
+//  slots    : rôle de chaque emplacement
+//  supports : true pour les emplacements qui ont un support
+//  groups   : nombre d'équipes dans une composition (Grand Party = 3)
+//  noBox    : rôles non comptés pour « réalisable par » (persos d'un autre joueur)
 // ------------------------------------------------------------
+const MAIN8 = ['main', 'main', 'main', 'main', 'main', 'sub', 'sub', 'sub'];
 export const FORMATS = {
   standard: {
     groups: { min: 1, max: 1 },
     slots: ['captain', 'friend', 'crew', 'crew', 'crew', 'crew'],
-    supports: true,
+    supports: [true, false, true, true, true, true],
     ship: true,
+    noBox: ['friend'],
+  },
+  coop: {
+    groups: { min: 1, max: 1 },
+    slots: ['captain', 'crew', 'crew', 'crew', 'crew', 'coop'],
+    supports: [true, true, true, true, true, false],
+    ship: true,
+    noBox: ['coop'],
   },
   rumble: {
     groups: { min: 1, max: 1 },
-    slots: ['pos1', 'pos2', 'pos3', 'pos4', 'pos5'],
+    slots: MAIN8,
     supports: false,
     ship: false,
   },
   grandparty: {
-    groups: { min: 1, max: 8 },
-    slots: ['leader', 'member', 'member'],
+    groups: { min: 3, max: 3 },
+    slots: MAIN8,
     supports: false,
     ship: false,
+    leader: true,
   },
 };
 
-// Événements proposés dans l'onglet Équipes
+// Modes de jeu
 export const EVENTS = [
-  { id: 'kizuna',   format: 'standard',   color: '#e0533d' },
-  { id: 'tm',       format: 'standard',   color: '#d69a1f' },
-  { id: 'pka',      format: 'standard',   color: '#8a5cd6' },
-  { id: 'blitz',    format: 'standard',   color: '#2f9e6e' },
   { id: 'prumble',  format: 'rumble',     color: '#2b7fd4' },
   { id: 'arumble',  format: 'rumble',     color: '#1f9bb0' },
   { id: 'gp',       format: 'grandparty', color: '#c9468f' },
+  { id: 'kizuna',   format: 'standard',   color: '#e0533d' },
+  { id: 'tm',       format: 'standard',   color: '#d69a1f' },
+  { id: 'pka',      format: 'standard',   color: '#8a5cd6' },
+  { id: 'coop',     format: 'coop',       color: '#0e9f8a' },
+  { id: 'blitz',    format: 'standard',   color: '#2f9e6e' },
   { id: 'other',    format: 'standard',   color: '#6b7280' },
 ];
+
+// Guide PvP (données extraites de l'OPTC Rumble Sheet de Nydato)
+export const PVP_GUIDE = {
+  url: 'pvp-guide.json',
+  sheet: 'https://docs.google.com/spreadsheets/d/1IvYZjjs9SAMF9L_Wj9ql-5hqg5tgcOVNYvfFZSKWroI/edit',
+};
 
 // Types de sockets (skill books)
 export const SOCKETS = [

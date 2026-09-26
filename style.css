@@ -144,8 +144,9 @@ label.check { flex-direction: row; align-items: center; gap: .5rem; margin: .6re
   display: flex; align-items: center; gap: 1rem; padding: .5rem 1rem; padding-top: max(.5rem, env(safe-area-inset-top));
 }
 .brand { font-weight: 700; color: var(--text); white-space: nowrap; }
-.tabs { display: flex; gap: .25rem; flex: 1; }
-.tabs a { padding: .45rem .8rem; border-radius: 8px; color: var(--muted); font-weight: 500; }
+.tabs { display: flex; gap: .2rem; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs a { padding: .45rem .7rem; border-radius: 8px; color: var(--muted); font-weight: 500; white-space: nowrap; flex: none; }
 .tabs a:hover { background: var(--surface-2); text-decoration: none; }
 .tabs a.on { color: var(--text); background: var(--surface-2); }
 .top-actions { display: flex; gap: .3rem; align-items: center; }
@@ -159,7 +160,8 @@ label.check { flex-direction: row; align-items: center; gap: .5rem; margin: .6re
   .topbar { flex-wrap: wrap; gap: .4rem; padding: .5rem .75rem; }
   .brand { flex: 1; }
   .tabs { order: 3; flex-basis: 100%; }
-  .tabs a { flex: 1; text-align: center; padding: .45rem .3rem; }
+  .tabs a { text-align: center; padding: .45rem .6rem; }
+  .tabs { mask-image: linear-gradient(90deg, #000 90%, transparent); }
 }
 
 /* ============ Pages ============ */
@@ -325,3 +327,94 @@ td .ubadge { position: static; }
 }
 .edit-group { margin: .9rem 0; }
 .lineup.edit { max-width: 560px; }
+
+/* ============ Formats 8 persos (PvP) et Grand Party ============ */
+.team-card.wide { grid-column: span 2; }
+@media (max-width: 760px) { .team-card.wide { grid-column: auto; } }
+.lineup8 { display: grid; grid-template-columns: 5fr 3fr; gap: .6rem; align-items: end; }
+.lineup8 .lineup.n5 { grid-template-columns: repeat(5, 1fr); }
+.lineup8 .lineup.n3 { grid-template-columns: repeat(3, 1fr) !important; }
+.lineup.n6 { grid-template-columns: repeat(6, 1fr); }
+.lineup.n5 { grid-template-columns: repeat(5, 1fr); }
+.slot-group { font-size: .68rem; font-weight: 600; color: var(--muted); margin: 0 0 .25rem; text-transform: uppercase; letter-spacing: .03em; }
+@media (max-width: 480px) { .lineup8 { grid-template-columns: 1fr; gap: .3rem; } .lineup8 .lineup.n3 { grid-template-columns: repeat(5, 1fr) !important; } }
+.crown { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); color: #e0a100; font-size: 1rem; text-shadow: 0 0 3px var(--surface); pointer-events: none; }
+.slot-lead {
+  position: absolute; top: -5px; left: -5px; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--surface); color: var(--muted); font-size: .8rem; cursor: pointer; display: grid; place-items: center; padding: 0;
+}
+.slot-lead.on { background: #e0a100; border-color: #e0a100; color: #fff; }
+.edit-group .lineup8 { max-width: 720px; }
+
+/* ============ Sous-onglets ============ */
+.subtabs { display: flex; gap: .3rem; overflow-x: auto; scrollbar-width: none; margin: 0 0 .9rem; border-bottom: 1px solid var(--border); }
+.subtabs::-webkit-scrollbar { display: none; }
+.subtabs a { padding: .5rem .8rem; color: var(--muted); font-weight: 500; white-space: nowrap; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.subtabs a:hover { color: var(--text); text-decoration: none; }
+.subtabs a.on { color: var(--text); border-bottom-color: var(--accent); }
+.subtabs.big { border-bottom: 0; gap: .4rem; margin-bottom: .6rem; }
+.subtabs.big a { border: 1px solid var(--border); border-radius: 999px; padding: .45rem 1rem; margin: 0; background: var(--surface); }
+.subtabs.big a.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.section-title { font-size: 1rem; margin: 1.5rem 0 .6rem; }
+
+/* ============ Kizuna ============ */
+.kz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .8rem; }
+.kz-card {
+  display: flex; flex-direction: column; gap: .2rem; padding: .9rem 1rem; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-left: 4px solid #e0533d; border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.kz-card:hover { text-decoration: none; border-color: #e0533d; }
+.card.notes { white-space: pre-wrap; font-size: .9rem; }
+
+/* ============ Guides PvP ============ */
+.source-note { margin: 0 0 .8rem; }
+.gunit { display: inline-block; width: 52px; height: 52px; padding: 0; border: 0; background: none; border-radius: 8px; overflow: hidden; cursor: pointer; flex: none; vertical-align: middle; }
+.gunit .thumb, .gunit img { width: 100%; height: 100%; display: block; object-fit: cover; }
+span.gunit { cursor: default; }
+.gunit.unknown { display: inline-grid; place-items: center; background: var(--surface-2); color: var(--muted); font-weight: 700; border: 1px dashed var(--border); }
+.gunit.small { width: 34px; height: 34px; margin-right: .3rem; }
+.grow-units { display: flex; flex-wrap: wrap; gap: 4px; }
+.tier { display: inline-grid; place-items: center; min-width: 2.2em; padding: .1rem .4rem; border-radius: 6px; font-weight: 800; font-size: .8rem; color: #fff; background: #6b7280; }
+.tier-OP { background: linear-gradient(135deg, #f43f5e, #a855f7); }
+.tier-SS { background: #ef4444; }
+.tier-S { background: #f97316; }
+.tier-A { background: #eab308; color: #1f1f1f; }
+.tier-B { background: #22c55e; }
+.tier-C { background: #3b82f6; }
+.tier-D { background: #6b7280; }
+.glist { display: grid; grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); gap: .8rem; }
+@media (max-width: 520px) { .glist { grid-template-columns: 1fr; } }
+.gcomp { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .7rem .8rem; box-shadow: var(--shadow); }
+.gcomp-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-bottom: .5rem; }
+.gteam { display: flex; align-items: flex-end; gap: .6rem; flex-wrap: wrap; }
+.gcomp .gteam > div:first-child .grow-units .gunit, .gcomp .gteam .gunit { width: 48px; height: 48px; }
+.gteam .sep { color: var(--border); font-size: 1.4rem; align-self: center; }
+.gtier { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .7rem .8rem; margin-bottom: .7rem; box-shadow: var(--shadow); }
+.gtier-head { display: flex; align-items: center; gap: .6rem; margin-bottom: .5rem; }
+.gtier-head .tier { font-size: 1rem; min-width: 2.6em; }
+.gtier-group { display: flex; gap: .6rem; align-items: flex-start; margin-top: .4rem; }
+.gtier-group .cost { font-size: .72rem; font-weight: 600; color: var(--muted); min-width: 4.2em; padding-top: .9rem; }
+@media (max-width: 520px) { .gtier-group { flex-direction: column; gap: .2rem; } .gtier-group .cost { padding-top: 0; } .gtier .gunit { width: 44px; height: 44px; } }
+.gblock { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: .6rem; box-shadow: var(--shadow); overflow: hidden; }
+.gblock-head { width: 100%; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; padding: .7rem .9rem; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.gblock-head:hover { background: var(--surface-2); }
+.gblock-head .chev { margin-left: auto; transition: transform .15s; color: var(--muted); }
+.gblock.open .gblock-head .chev { transform: rotate(180deg); }
+.gblock-body { display: none; padding: 0 .9rem .9rem; }
+.gblock.open .gblock-body { display: block; }
+.grole-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .5rem; margin-bottom: .8rem; }
+.grole { display: flex; gap: .5rem; align-items: flex-start; }
+.grole > div { min-width: 0; }
+.tiny { font-size: .72rem; margin: .15rem 0 0; line-height: 1.35; }
+.gboss-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: .8rem 1.2rem; margin-bottom: .6rem; }
+.gboss-grid ul { margin: 0; padding-left: 1.1rem; }
+.gboss-grid .grole { margin-bottom: .4rem; }
+.gteam.alt { opacity: .92; }
+.gblock-body .gteam { padding: .5rem 0; border-top: 1px solid var(--border); }
+.gteam-meta { display: flex; flex-direction: column; align-items: flex-start; gap: .2rem; min-width: 5.5rem; align-self: center; }
+.gteam-vs { flex-basis: 100%; }
+.table-scroll { overflow-x: auto; }
+.gtable tr { cursor: default; }
+.gtable tr:hover td { background: none; }
+.gtable th { position: static; }
+.scroll-img { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; vertical-align: middle; }

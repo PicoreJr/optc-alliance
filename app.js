@@ -5,7 +5,9 @@ import { api, ApiError } from './api.js';
 import { DATA, loadCore, loadDetails } from './data.js';
 import { esc, $, $$, toast, openModal } from './ui.js';
 import { renderChars, refreshChars } from './views/chars.js';
-import { renderTeams } from './views/teams.js';
+import { renderPvp } from './views/pvp.js';
+import { renderKizuna } from './views/kizuna.js';
+import { renderMode } from './views/modes.js';
 import { renderAlliance, renderMember } from './views/alliance.js';
 
 const root = document.getElementById('app');
@@ -122,14 +124,16 @@ async function start(session) {
 // Nouvelles données de persos disponibles (mise à jour en arrière-plan)
 DATA.listeners.add((what) => { if (what === 'units') refreshChars(); });
 
+const TABS = ['pvp', 'kizuna', 'tm', 'pka', 'coop', 'blitz', 'alliance'];
+const MODE_TABS = ['tm', 'pka', 'coop', 'blitz'];
+
 function shell() {
   root.innerHTML = `
     <header class="topbar">
       <a class="brand" href="#/chars">${esc(CONFIG.allianceName)}</a>
       <nav class="tabs">
         <a href="#/chars" data-tab="chars">${esc(t('tab.chars'))}</a>
-        <a href="#/teams" data-tab="teams">${esc(t('tab.teams'))}</a>
-        <a href="#/alliance" data-tab="alliance">${esc(t('tab.alliance'))}</a>
+        ${TABS.map((id) => `<a href="#/${id}" data-tab="${id}">${esc(t('tab.' + id))}</a>`).join('')}
       </nav>
       <div class="top-actions">
         ${app.isAdmin ? `<button class="btn ghost small admin" data-codes title="${esc(t('nav.codes'))}">★<span class="lbl"> ${esc(t('nav.admin'))}</span></button>` : ''}
@@ -148,13 +152,19 @@ function route() {
   const main = document.getElementById('main');
   if (!main) return;
   const hash = location.hash.replace(/^#\/?/, '') || 'chars';
-  const [page, arg] = hash.split('/');
+  const [page, arg, arg2] = hash.split('/').map((x) => decodeURIComponent(x || ''));
+  // anciens liens « #/teams » -> onglet PvP
+  if (page === 'teams') { location.replace('#/pvp'); return; }
   const tab = page === 'member' ? 'alliance' : page;
   $$('[data-tab]').forEach((a) => a.classList.toggle('on', a.dataset.tab === tab));
+  const on = $('.tabs a.on');
+  if (on) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   window.scrollTo(0, 0);
-  if (page === 'teams') renderTeams(main, app);
+  if (page === 'pvp') renderPvp(main, app, arg, arg2);
+  else if (page === 'kizuna') renderKizuna(main, app, arg, arg2);
+  else if (MODE_TABS.includes(page)) renderMode(main, app, page);
   else if (page === 'alliance') renderAlliance(main, app);
-  else if (page === 'member') renderMember(main, app, decodeURIComponent(arg || ''));
+  else if (page === 'member') renderMember(main, app, arg);
   else renderChars(main, app);
 }
 window.addEventListener('hashchange', () => { if (app.code) route(); });
