@@ -146,7 +146,7 @@ function teamCard(tm, app) {
       <span class="row">
         <button class="btn ghost small" data-dup>${esc(t('t.duplicate'))}</button>
         <button class="btn ghost small" data-edit>${esc(t('t.editBtn'))}</button>
-        ${app.isAdmin ? `<button class="btn ghost danger small" data-del>${esc(t('t.delete'))}</button>` : ''}
+        <button class="btn ghost danger small" data-del>${esc(t('t.delete'))}</button>
       </span>
     </footer>
   </article>`;

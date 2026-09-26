@@ -36,6 +36,7 @@ function sorter(k) {
   }[k];
 }
 function boxCount(m) { return m.box ? Object.keys(m.box).length : 0; }
+function totalLegends() { return DATA.units.filter((u) => u.legend).length; }
 function legendCount(m) {
   if (!m.box) return 0;
   let n = 0;
@@ -140,7 +141,7 @@ export function renderMember(main, app, id) {
   };
   const updateCount = () => {
     const c = $('[data-boxcount]', main);
-    if (c) c.textContent = `(${t('m.units', { n: boxCount(mb) })} · ${t('m.legends', { n: legendCount(mb) })})`;
+    if (c) c.textContent = `(${t('m.legendsOf', { n: legendCount(mb), total: totalLegends() })} · ${t('m.units', { n: boxCount(mb) })})`;
   };
   updateCount();
 
@@ -178,19 +179,32 @@ export function renderMember(main, app, id) {
     save();
   }
   if (boxBrowser) boxBrowser.destroy();
+  // Toutes les légendes sont affichées : grisées = pas encore dans la box.
+  // 1er clic = sélectionner, clic suivant = détails (LB/LLB, potentiels…)
   boxBrowser = new UnitBrowser({
     hideOwner: true,
-    baseFilter: (u) => !!mb.box[u.id],
+    baseFilter: (u) => u.legend || !!mb.box[u.id],
+    ownBox: () => mb.box,
+    isSelected: (u) => !!mb.box[u.id],
+    dimUnselected: true,
     badge: (u) => lbShort(mb.box[u.id]),
-    actions: `<button class="btn primary small" data-addunits>${esc(t('m.addUnits'))}</button>`,
-    onPick: (u) => openBoxEntry(mb, u.id, {
-      onChange: () => { boxBrowser.updateItem(u.id); save(); },
-      onRemove: afterBoxChange,
-    }),
+    actions: `<button class="btn ghost small" data-addunits>${esc(t('m.otherUnits'))}</button>`,
+    onPick: (u) => {
+      if (!mb.box[u.id]) {
+        mb.box[u.id] = {};
+        boxBrowser.updateItem(u.id);
+        updateCount();
+        save();
+        return;
+      }
+      openBoxEntry(mb, u.id, {
+        onChange: () => { boxBrowser.updateItem(u.id); save(); },
+        onRemove: afterBoxChange,
+      });
+    },
     onToolbar: (root) => { $('[data-addunits]', root).onclick = () => openPicker(mb, app, afterBoxChange); },
   });
   boxBrowser.mount($('[data-box]', main));
-  if (!boxCount(mb)) $('.results', boxBrowser.root).insertAdjacentHTML('beforebegin', `<p class="empty" data-emptybox>${esc(t('m.boxEmpty'))}</p>`);
 }
 
 // Ajout rapide de persos à la box
