@@ -1,5 +1,5 @@
 // Onglet Personnages + fiche détaillée d'un perso
-import { t } from '../i18n.js';
+import { t, fmtDate } from '../i18n.js';
 import { CONFIG } from '../config.js';
 import { DATA, loadDetails, getDetails, bigUrl } from '../data.js';
 import { esc, $, UnitBrowser, openModal, thumb, typeBadges, richText } from '../ui.js';
@@ -52,6 +52,7 @@ export function openUnit(id, app) {
             <div><dt>${esc(t('u.sockets'))}</dt><dd>${u.sockets}</dd></div>
             <div><dt>${esc(t('u.maxLevel'))}</dt><dd>${u.maxLevel ?? '—'}</dd></div>
             <div><dt>${esc(t('u.cd'))}</dt><dd>${u.cd ? `${u.cd[0]} → ${u.cd[1]}` : '—'}</dd></div>
+            <div><dt>${esc(t('u.added'))}</dt><dd>${u.added ? esc(fmtDate(u.added)) : esc(t('u.new'))}</dd></div>
           </dl>
           <table class="stats"><thead><tr><th></th><th>HP</th><th>ATK</th><th>RCV</th></tr></thead><tbody>
             <tr><th>${esc(t('u.min'))}</th><td>${u.minHP ?? '—'}</td><td>${u.minATK ?? '—'}</td><td>${u.minRCV ?? '—'}</td></tr>
