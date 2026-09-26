@@ -1,36 +1,46 @@
-// Onglet Équipes : équipes partagées par événement
+// Équipes partagées : liste + éditeur, réutilisés par chaque mode de jeu
+// (PvP, Kizuna, Treasure Map, PKA, Coop, Blitz).
 import { t, fmtDate } from '../i18n.js';
 import { EVENTS, FORMATS } from '../config.js';
 import { DATA } from '../data.js';
 import { esc, $, $$, openModal, confirmBox, toast, thumb, pickUnit, debounce } from '../ui.js';
 import { openUnit } from './chars.js';
 
-const state = { event: '', q: '', feasibleFor: '' };
-
-const eventById = (id) => EVENTS.find((e) => e.id === id) || EVENTS[EVENTS.length - 1];
-const formatOf = (eventId) => FORMATS[eventById(eventId).format] || FORMATS.standard;
+export const eventById = (id) => EVENTS.find((e) => e.id === id) || EVENTS[EVENTS.length - 1];
+export const formatOf = (eventId) => FORMATS[eventById(eventId).format] || FORMATS.standard;
+const hasSupport = (fmt, i) => (Array.isArray(fmt.supports) ? !!fmt.supports[i] : !!fmt.supports);
+const newGroup = (fmt) => ({ slots: fmt.slots.map(() => ({ u: null, s: null })) });
 
 function emptyLineup(fmt) {
-  return {
-    groups: Array.from({ length: fmt.groups.min }, () => ({ slots: fmt.slots.map(() => ({ u: null, s: null })) })),
-    ship: '',
-  };
+  return { groups: Array.from({ length: fmt.groups.min }, () => newGroup(fmt)), ship: '', leader: null };
 }
-function normalizeLineup(team) {
+
+// Remet une composition au format de son mode (anciens formats compris)
+export function normalizeLineup(team) {
   const fmt = formatOf(team.event_type);
   const lu = team.units && typeof team.units === 'object' && !Array.isArray(team.units) ? team.units : {};
-  const groups = Array.isArray(lu.groups) && lu.groups.length ? lu.groups : emptyLineup(fmt).groups;
+  let groups = Array.isArray(lu.groups) && lu.groups.length ? lu.groups : emptyLineup(fmt).groups;
+  groups = groups.slice(0, fmt.groups.max);
+  while (groups.length < fmt.groups.min) groups.push(newGroup(fmt));
   return {
-    groups: groups.map((g) => ({ slots: fmt.slots.map((_, i) => ({ u: (g.slots || [])[i]?.u ?? null, s: (g.slots || [])[i]?.s ?? null })) })),
-    ship: lu.ship || '',
+    ...lu,
+    groups: groups.map((g) => ({
+      slots: fmt.slots.map((_, i) => ({
+        u: (g.slots || [])[i]?.u ?? null,
+        s: hasSupport(fmt, i) ? (g.slots || [])[i]?.s ?? null : null,
+      })),
+    })),
+    ship: fmt.ship ? lu.ship || '' : '',
+    leader: fmt.leader ? lu.leader || null : null,
   };
 }
-// Persos « obligatoires » d'une équipe (hors ami capitaine et supports)
+
+// Persos à posséder (hors ami capitaine, capitaine coop et supports)
 function requiredUnits(team) {
   const fmt = formatOf(team.event_type);
   const lu = normalizeLineup(team);
   const ids = new Set();
-  lu.groups.forEach((g) => g.slots.forEach((sl, i) => { if (sl.u && fmt.slots[i] !== 'friend') ids.add(sl.u); }));
+  lu.groups.forEach((g) => g.slots.forEach((sl, i) => { if (sl.u && !(fmt.noBox || []).includes(fmt.slots[i])) ids.add(sl.u); }));
   return [...ids];
 }
 function allUnits(team) {
@@ -45,32 +55,43 @@ function feasibleMembers(team, members) {
   return members.filter((m) => m.box && req.every((id) => m.box[id]));
 }
 
-export function renderTeams(main, app) {
-  main.innerHTML = `<section class="page">
-    <div class="page-head">
-      <h1>${esc(t('tab.teams'))}</h1>
-      <button class="btn primary" data-new>+ ${esc(t('t.new'))}</button>
-    </div>
+/**
+ * Affiche une liste d'équipes dans `root`.
+ * opts.events    modes proposés (le 1er est celui par défaut)
+ * opts.filter    (team) => boolean
+ * opts.defaults  champs ajoutés aux nouvelles équipes ({ units: { kz, stage } }…)
+ * opts.emptyText texte si aucune équipe
+ */
+const states = new Map();
+export function renderTeamList(root, app, opts) {
+  const key = opts.key || opts.events.join(',');
+  const state = states.get(key) || { q: '', feasibleFor: '', event: '' };
+  states.set(key, state);
+  const multi = opts.events.length > 1;
+  root.innerHTML = `
     <div class="toolbar">
-      <div class="row chips scroll-x">
-        <button class="chip ${!state.event ? 'on' : ''}" data-ev="">${esc(t('ev.all'))}</button>
-        ${EVENTS.map((e) => `<button class="chip ev ${state.event === e.id ? 'on' : ''}" style="--ev:${e.color}" data-ev="${e.id}">${esc(t('ev.' + e.id))}</button>`).join('')}
-      </div>
       <div class="row wrap">
         <input type="search" class="input grow" data-q placeholder="${esc(t('t.search'))}" value="${esc(state.q)}">
         <select class="input" data-feasible aria-label="${esc(t('t.feasibleFor'))}">
           <option value="">${esc(t('t.feasibleFor'))} : ${esc(t('t.anyMember'))}</option>
           ${app.members.map((m) => `<option value="${esc(m.id)}" ${state.feasibleFor === m.id ? 'selected' : ''}>${esc(t('t.feasibleFor'))} : ${esc(m.pseudo)}</option>`).join('')}
         </select>
+        <button class="btn primary" data-new>+ ${esc(t('t.new'))}</button>
       </div>
+      ${multi ? `<div class="row chips">
+        <button class="chip ${!state.event ? 'on' : ''}" data-ev="">${esc(t('ev.all'))}</button>
+        ${opts.events.map((id) => `<button class="chip ev ${state.event === id ? 'on' : ''}" style="--ev:${eventById(id).color}" data-ev="${id}">${esc(t('ev.' + id))}</button>`).join('')}
+      </div>` : ''}
     </div>
-    <div class="team-list" data-list></div>
-  </section>`;
+    <div class="team-list" data-list></div>`;
 
+  const redraw = () => (opts.onChange ? opts.onChange() : renderTeamList(root, app, opts));
   const drawList = () => {
     const q = state.q.trim().toLowerCase();
     const fm = state.feasibleFor ? app.members.find((m) => m.id === state.feasibleFor) : null;
     const list = app.teams.filter((tm) => {
+      if (!opts.events.includes(tm.event_type)) return false;
+      if (opts.filter && !opts.filter(tm)) return false;
       if (state.event && tm.event_type !== state.event) return false;
       if (fm && !feasibleMembers(tm, [fm]).length) return false;
       if (q) {
@@ -79,65 +100,88 @@ export function renderTeams(main, app) {
       }
       return true;
     });
-    const box = $('[data-list]', main);
-    box.innerHTML = list.length ? list.map((tm) => teamCard(tm, app)).join('')
-      : `<p class="empty">${esc(app.teams.length ? t('t.noneFilter') : t('t.none'))}</p>`;
+    const box = $('[data-list]', root);
+    box.innerHTML = list.length ? list.map((tm) => teamCard(tm, app, multi)).join('')
+      : `<p class="empty">${esc(opts.emptyText || t('t.none'))}</p>`;
     $$('[data-team]', box).forEach((card) => {
       const tm = app.teams.find((x) => x.id === card.dataset.team);
       $$('[data-uid]', card).forEach((n) => n.onclick = () => openUnit(Number(n.dataset.uid), app));
       const on = (sel, fn) => { const b = $(sel, card); if (b) b.onclick = fn; };
-      on('[data-edit]', () => openEditor(app, tm, () => renderTeams(main, app)));
-      on('[data-dup]', () => openEditor(app, { ...tm, id: null, title: tm.title ? tm.title + ' (2)' : '' }, () => renderTeams(main, app)));
+      on('[data-edit]', () => openEditor(app, tm, opts, redraw));
+      on('[data-dup]', () => openEditor(app, { ...tm, id: null, title: tm.title ? tm.title + ' (2)' : '' }, opts, redraw));
       on('[data-del]', async () => {
         if (!await confirmBox(t('t.confirmDelete'), { danger: true })) return;
         try {
           await app.api('deleteTeam', tm.id);
           app.teams = app.teams.filter((x) => x !== tm);
           toast(t('t.deleted'));
-          drawList();
+          if (opts.onChange) opts.onChange(); else drawList();
         } catch (e) { app.fail(e); }
       });
     });
   };
 
-  $$('[data-ev]', main).forEach((b) => b.onclick = () => {
+  $$('[data-ev]', root).forEach((b) => b.onclick = () => {
     state.event = b.dataset.ev;
-    $$('[data-ev]', main).forEach((x) => x.classList.toggle('on', x === b));
+    $$('[data-ev]', root).forEach((x) => x.classList.toggle('on', x === b));
     drawList();
   });
-  $('[data-q]', main).addEventListener('input', debounce((e) => { state.q = e.target.value; drawList(); }, 150));
-  $('[data-feasible]', main).onchange = (e) => { state.feasibleFor = e.target.value; drawList(); };
-  $('[data-new]', main).onclick = () => openEditor(app, { event_type: state.event || 'kizuna' }, () => renderTeams(main, app));
+  $('[data-q]', root).addEventListener('input', debounce((e) => { state.q = e.target.value; drawList(); }, 150));
+  $('[data-feasible]', root).onchange = (e) => { state.feasibleFor = e.target.value; drawList(); };
+  $('[data-new]', root).onclick = () => openEditor(app, {
+    event_type: state.event || opts.events[0],
+    ...(opts.defaults || {}),
+  }, opts, redraw);
   drawList();
 }
 
-function slotTile(id, label, cls = '') {
+function slotTile(id, label, cls = '', crown = false) {
   const u = id ? DATA.byId.get(id) : null;
   return `<div class="slot ${cls}">
     ${id ? `<button class="slot-img" data-uid="${id}" title="${esc(u ? u.name : '#' + id)}">${thumb(id)}</button>`
       : '<div class="slot-img empty"></div>'}
+    ${crown ? `<span class="crown" title="${esc(t('slot.gpLeader'))}">♛</span>` : ''}
     <span class="slot-label">${esc(label)}</span></div>`;
 }
 
-function teamCard(tm, app) {
+function groupTitle(fmt, gi, count) {
+  if (fmt.leader) return t('t.gpTeam' + (gi + 1));
+  return count > 1 ? t('t.group', { n: gi + 1 }) : '';
+}
+
+// Emplacements groupés : principaux / secondaires pour le PvP
+function slotsHtml(fmt, g, gi, lu, render) {
+  const idx = fmt.slots.map((_, i) => i);
+  const main = idx.filter((i) => fmt.slots[i] !== 'sub');
+  const sub = idx.filter((i) => fmt.slots[i] === 'sub');
+  const cols = (list) => list.map((i) => render(g.slots[i], i, `${gi}.${i}`)).join('');
+  if (!sub.length) return `<div class="lineup n${main.length}">${cols(main)}</div>`;
+  return `<div class="lineup8">
+    <div><p class="slot-group">${esc(t('slot.mains'))}</p><div class="lineup n5">${cols(main)}</div></div>
+    <div><p class="slot-group">${esc(t('slot.subs'))}</p><div class="lineup n3">${cols(sub)}</div></div>
+  </div>`;
+}
+
+function teamCard(tm, app, showEvent) {
   const ev = eventById(tm.event_type);
   const fmt = formatOf(tm.event_type);
   const lu = normalizeLineup(tm);
   const feas = feasibleMembers(tm, app.members);
   const hasReq = requiredUnits(tm).length > 0;
-  return `<article class="team-card" data-team="${esc(tm.id)}" style="--ev:${ev.color}">
+  return `<article class="team-card ${fmt.slots.length > 6 ? 'wide' : ''}" data-team="${esc(tm.id)}" style="--ev:${ev.color}">
     <header>
-      <span class="ev-badge">${esc(t('ev.' + ev.id))}</span>
+      ${showEvent ? `<span class="ev-badge">${esc(t('ev.' + ev.id))}</span>` : ''}
       <h3>${esc(tm.title || tm.boss || t('ev.' + ev.id))}</h3>
       ${tm.title && tm.boss ? `<p class="muted">${esc(tm.boss)}</p>` : ''}
     </header>
     ${lu.groups.map((g, gi) => `
-      ${lu.groups.length > 1 ? `<p class="group-title">${esc(t('t.group', { n: gi + 1 }))}</p>` : ''}
-      <div class="lineup">${g.slots.map((sl, i) => `<div class="slot-col">
-        ${slotTile(sl.u, t('slot.' + fmt.slots[i]))}
-        ${fmt.supports && sl.s ? slotTile(sl.s, t('slot.support'), 'support') : ''}
-      </div>`).join('')}</div>`).join('')}
+      ${groupTitle(fmt, gi, lu.groups.length) ? `<p class="group-title">${esc(groupTitle(fmt, gi, lu.groups.length))}</p>` : ''}
+      ${slotsHtml(fmt, g, gi, lu, (sl, i, k) => `<div class="slot-col">
+        ${slotTile(sl.u, t('slot.' + fmt.slots[i]), '', lu.leader === k && !!sl.u)}
+        ${hasSupport(fmt, i) && sl.s ? slotTile(sl.s, t('slot.support'), 'support') : ''}
+      </div>`)}`).join('')}
     ${lu.ship ? `<p class="small"><strong>${esc(t('t.ship'))} :</strong> ${esc(lu.ship)}</p>` : ''}
+    ${leaderLine(lu)}
     ${tm.notes ? `<div class="notes">${esc(tm.notes)}</div>` : ''}
     ${hasReq ? `<p class="small feasible" title="${esc(t('t.feasibleHint'))}"><strong>${esc(t('t.feasible'))} :</strong>
       ${feas.length ? feas.map((m) => `<a href="#/member/${esc(m.id)}">${esc(m.pseudo)}</a>`).join(', ') : `<span class="muted">${esc(t('t.feasibleNone'))}</span>`}</p>` : ''}
@@ -152,11 +196,19 @@ function teamCard(tm, app) {
   </article>`;
 }
 
+function leaderLine(lu) {
+  if (!lu.leader) return '';
+  const [gi, i] = lu.leader.split('.');
+  const id = lu.groups[gi]?.slots[i]?.u;
+  if (!id) return '';
+  return `<p class="small"><strong>♛ ${esc(t('slot.gpLeader'))} :</strong> ${esc(DATA.byId.get(id)?.name || '#' + id)}</p>`;
+}
+
 // ---------- éditeur ----------
-function openEditor(app, team, onSaved) {
+export function openEditor(app, team, opts, onSaved) {
   const draft = {
     id: team.id || null,
-    event_type: team.event_type || 'kizuna',
+    event_type: team.event_type || opts.events[0],
     title: team.title || '',
     boss: team.boss || '',
     author: team.author || lastAuthor(),
@@ -175,30 +227,31 @@ function openEditor(app, team, onSaved) {
     const lu = draft.units;
     m.body.innerHTML = `
       <div class="form-grid">
-        <label>${esc(t('t.event'))}<select class="input" data-f="event_type">
-          ${EVENTS.map((e) => `<option value="${e.id}" ${draft.event_type === e.id ? 'selected' : ''}>${esc(t('ev.' + e.id))}</option>`).join('')}
-        </select></label>
+        ${opts.events.length > 1 ? `<label>${esc(t('t.event'))}<select class="input" data-f="event_type">
+          ${opts.events.map((id) => `<option value="${id}" ${draft.event_type === id ? 'selected' : ''}>${esc(t('ev.' + id))}</option>`).join('')}
+        </select></label>` : ''}
         <label>${esc(t('t.author'))}<input class="input" data-f="author" list="members-dl" value="${esc(draft.author)}" maxlength="40">
           <datalist id="members-dl">${app.members.map((mb) => `<option value="${esc(mb.pseudo)}">`).join('')}</datalist></label>
         <label class="span2">${esc(t('t.title'))}<input class="input" data-f="title" value="${esc(draft.title)}" placeholder="${esc(t('t.titlePh'))}" maxlength="80"></label>
-        <label class="span2">${esc(t('t.boss'))}<input class="input" data-f="boss" value="${esc(draft.boss)}" placeholder="${esc(t('t.bossPh'))}" maxlength="80"></label>
+        ${opts.noBoss ? '' : `<label class="span2">${esc(t('t.boss'))}<input class="input" data-f="boss" value="${esc(draft.boss)}" placeholder="${esc(t('t.bossPh'))}" maxlength="80"></label>`}
       </div>
+      ${fmt.leader ? `<p class="muted small">${esc(t('t.leaderHint'))}</p>` : ''}
       ${lu.groups.map((g, gi) => `<div class="edit-group">
-        ${fmt.groups.max > 1 ? `<div class="row between"><p class="group-title">${esc(t('t.group', { n: gi + 1 }))}</p>
-          ${lu.groups.length > fmt.groups.min ? `<button class="btn ghost small danger" data-rmgroup="${gi}">${esc(t('t.removeGroup'))}</button>` : ''}</div>` : ''}
-        <div class="lineup edit">${g.slots.map((sl, i) => `<div class="slot-col">
-          ${editSlot(sl.u, t('slot.' + fmt.slots[i]), `${gi}.${i}.u`)}
-          ${fmt.supports ? editSlot(sl.s, t('slot.support'), `${gi}.${i}.s`, 'support') : ''}
-        </div>`).join('')}</div></div>`).join('')}
-      ${fmt.groups.max > lu.groups.length ? `<button class="btn ghost" data-addgroup>${esc(t('t.addGroup'))}</button>` : ''}
+        ${groupTitle(fmt, gi, lu.groups.length) ? `<p class="group-title">${esc(groupTitle(fmt, gi, lu.groups.length))}</p>` : ''}
+        ${slotsHtml(fmt, g, gi, lu, (sl, i, k) => `<div class="slot-col">
+          ${editSlot(sl.u, t('slot.' + fmt.slots[i]), `${k}.u`, '', fmt.leader ? (lu.leader === k ? 'on' : 'off') : null)}
+          ${hasSupport(fmt, i) ? editSlot(sl.s, t('slot.support'), `${k}.s`, 'support') : ''}
+        </div>`)}
+      </div>`).join('')}
       ${fmt.ship ? `<label class="block">${esc(t('t.ship'))}<input class="input" data-ship value="${esc(lu.ship)}" maxlength="60"></label>` : ''}
       <label class="block">${esc(t('t.notes'))}<textarea class="input" data-f="notes" rows="5" placeholder="${esc(t('t.notesPh'))}" maxlength="4000">${esc(draft.notes)}</textarea></label>`;
 
     $$('[data-f]', m.body).forEach((inp) => inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => {
       if (inp.dataset.f === 'event_type') {
         const before = allSlotUnits(draft.units);
+        const keep = { ...draft.units };
         draft.event_type = inp.value;
-        draft.units = refill(formatOf(draft.event_type), before, draft.units.ship);
+        draft.units = { ...keep, ...refill(formatOf(draft.event_type), before, draft.units.ship) };
         draw();
       } else draft[inp.dataset.f] = inp.value;
     }));
@@ -212,11 +265,16 @@ function openEditor(app, team, onSaved) {
     $$('[data-clear]', m.body).forEach((b) => b.onclick = (e) => {
       e.stopPropagation();
       const [gi, i, k] = b.dataset.clear.split('.');
-      draft.units.groups[gi].slots[i][k] = null; draw();
+      draft.units.groups[gi].slots[i][k] = null;
+      if (k === 'u' && draft.units.leader === `${gi}.${i}`) draft.units.leader = null;
+      draw();
     });
-    const add = $('[data-addgroup]', m.body);
-    if (add) add.onclick = () => { draft.units.groups.push({ slots: fmt.slots.map(() => ({ u: null, s: null })) }); draw(); };
-    $$('[data-rmgroup]', m.body).forEach((b) => b.onclick = () => { draft.units.groups.splice(Number(b.dataset.rmgroup), 1); draw(); });
+    $$('[data-lead]', m.body).forEach((b) => b.onclick = (e) => {
+      e.stopPropagation();
+      const k = b.dataset.lead;
+      draft.units.leader = draft.units.leader === k ? null : k;
+      draw();
+    });
   };
 
   $('[data-a="cancel"]', m.el).onclick = () => m.close();
@@ -236,13 +294,15 @@ function openEditor(app, team, onSaved) {
   draw();
 }
 
-function editSlot(id, label, key, cls = '') {
+function editSlot(id, label, key, cls = '', lead = null) {
   const u = id ? DATA.byId.get(id) : null;
+  const base = key.replace(/\.[us]$/, '');
   return `<div class="slot ${cls}">
     <button class="slot-img ${id ? '' : 'empty'}" data-slot="${key}" title="${esc(u ? u.name : t('t.pick'))}">
       ${id ? thumb(id) : '<span class="plus">+</span>'}
     </button>
     ${id ? `<button class="slot-clear" data-clear="${key}" aria-label="${esc(t('t.clear'))}">✕</button>` : ''}
+    ${id && lead ? `<button class="slot-lead ${lead}" data-lead="${base}" title="${esc(t('slot.gpLeader'))}">♛</button>` : ''}
     <span class="slot-label">${esc(label)}</span></div>`;
 }
 
@@ -251,18 +311,18 @@ function allSlotUnits(lu) {
   lu.groups.forEach((g) => g.slots.forEach((sl) => { if (sl.u) out.push({ u: sl.u, s: sl.s }); }));
   return out;
 }
-// Quand on change d'événement, on replace les persos déjà choisis dans le nouveau format
+// Quand on change de mode, on replace les persos déjà choisis dans le nouveau format
 function refill(fmt, units, ship) {
   const lu = emptyLineup(fmt);
   lu.ship = fmt.ship ? ship : '';
   let gi = 0; let i = 0;
   for (const x of units) {
     if (i >= fmt.slots.length) {
-      if (lu.groups.length >= fmt.groups.max) break;
-      lu.groups.push({ slots: fmt.slots.map(() => ({ u: null, s: null })) });
+      if (gi + 1 >= fmt.groups.max) break;
+      if (!lu.groups[gi + 1]) lu.groups.push(newGroup(fmt));
       gi++; i = 0;
     }
-    lu.groups[gi].slots[i] = { u: x.u, s: fmt.supports ? x.s : null };
+    lu.groups[gi].slots[i] = { u: x.u, s: hasSupport(fmt, i) ? x.s : null };
     i++;
   }
   return lu;
