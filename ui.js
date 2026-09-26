@@ -1,6 +1,6 @@
 // Outils d'interface : échappement, modales, notifications, vignettes,
 // et le navigateur de personnages réutilisé partout (table, box, équipes).
-import { t } from './i18n.js';
+import { t, fmtDate } from './i18n.js';
 import { DATA, TYPES, CLASSES, RARITIES, thumbUrl, THUMB_STAGES, NOIMAGE, loadDetails, abilityText } from './data.js';
 
 // ---------- bases ----------
@@ -122,7 +122,7 @@ export class UnitBrowser {
     this.o = opts;
     this.s = Object.assign({
       q: '', types: [], classes: [], rarity: '', region: '', owner: '', notOwner: '',
-      ability: '', sort: 'idDesc', view: 'grid', more: false, own: '',
+      ability: '', sort: 'dateDesc', view: 'grid', more: false, own: '', since: '',
     }, opts.state || {});
     this.results = [];
     this.shown = 0;
@@ -172,8 +172,11 @@ export class UnitBrowser {
             ${members.length && !this.o.hideOwner ? `<select class="input" data-f="owner" aria-label="${esc(t('f.owner'))}">
               ${opt('', t('f.anyOwner'), s.owner)}${members.map((m) => opt(m.id, t('f.ownedBy', { name: m.pseudo }), s.owner)).join('')}
             </select>` : ''}
+            <select class="input" data-f="since" aria-label="${esc(t('f.since'))}">
+              ${['', '7', '30', '90', '180', '365'].map((k) => opt(k, t('since.' + (k || 'all')), s.since)).join('')}
+            </select>
             <select class="input" data-f="sort" aria-label="${esc(t('f.sort'))}">
-              ${['idDesc', 'idAsc', 'atk', 'hp', 'rcv', 'name'].map((k) => opt(k, t('sort.' + k), s.sort)).join('')}
+              ${['dateDesc', 'dateAsc', 'idDesc', 'idAsc', 'atk', 'hp', 'rcv', 'name'].map((k) => opt(k, t('sort.' + k), s.sort)).join('')}
             </select>
           </div>
           <div class="row">
@@ -217,7 +220,7 @@ export class UnitBrowser {
       e.target.textContent = this.s.more ? t('f.less') : t('f.more');
     };
     $('[data-act="reset"]', this.root).onclick = () => {
-      Object.assign(this.s, { q: '', types: [], classes: [], rarity: '', region: '', owner: '', notOwner: '', ability: '', sort: 'idDesc', own: '' });
+      Object.assign(this.s, { q: '', types: [], classes: [], rarity: '', region: '', owner: '', notOwner: '', ability: '', sort: 'dateDesc', own: '', since: '' });
       this.renderToolbar(); this.refresh();
     };
     if (this.o.onToolbar) this.o.onToolbar(this.root);
@@ -240,6 +243,7 @@ export class UnitBrowser {
     const notOwnerBox = s.notOwner ? (members.find((m) => m.id === s.notOwner) || {}).box || {} : null;
     const base = this.o.baseFilter;
     const ownBox = this.o.ownBox ? this.o.ownBox() : null;
+    const sinceDate = s.since ? new Date(Date.now() - Number(s.since) * 864e5).toISOString().slice(0, 10) : null;
 
     let list = DATA.units.filter((u) => {
       if (base && !base(u)) return false;
@@ -250,6 +254,7 @@ export class UnitBrowser {
       if (types.size && !(u.types.some((ty) => types.has(ty)) || (types.has('DUAL') && u.dual))) return false;
       if (s.classes.length && !s.classes.every((c) => u.classes.includes(c))) return false;
       if (s.rarity && u.stars !== s.rarity) return false;
+      if (sinceDate && u.addedSort < sinceDate) return false;
       if (s.region === 'glo' && !u.global) return false;
       if (s.region === 'jap' && u.global) return false;
       if (ownerBox && !ownerBox[u.id]) return false;
@@ -260,14 +265,17 @@ export class UnitBrowser {
       }
       return true;
     });
+    const byDate = (a, b) => (a.addedSort < b.addedSort ? 1 : a.addedSort > b.addedSort ? -1 : b.id - a.id);
     const by = {
+      dateDesc: byDate,
+      dateAsc: (a, b) => byDate(b, a),
       idDesc: (a, b) => b.id - a.id,
       idAsc: (a, b) => a.id - b.id,
       atk: (a, b) => b.atk - a.atk,
       hp: (a, b) => b.hp - a.hp,
       rcv: (a, b) => b.rcv - a.rcv,
       name: (a, b) => a.name.localeCompare(b.name),
-    }[s.sort] || ((a, b) => b.id - a.id);
+    }[s.sort] || byDate;
     list.sort(by);
     // un ID tapé exactement passe en premier
     if (qId !== null) {
@@ -285,7 +293,7 @@ export class UnitBrowser {
     res.innerHTML = this.s.view === 'list' && this.o.allowList ? `<table class="utable"><thead><tr>
         <th></th><th>${esc(t('u.id'))}</th><th>${esc(t('u.name'))}</th><th>${esc(t('u.type'))}</th>
         <th class="hide-sm">${esc(t('u.class'))}</th><th>★</th><th class="num hide-sm">${esc(t('u.cost'))}</th>
-        <th class="num">HP</th><th class="num">ATK</th><th class="num">RCV</th><th class="num hide-sm">CD</th>
+        <th class="num">HP</th><th class="num">ATK</th><th class="num">RCV</th><th class="num hide-sm">CD</th><th class="hide-sm">${esc(t('u.added'))}</th>
       </tr></thead><tbody></tbody></table>` : '';
     const count = $('[data-count]', this.root);
     let txt = t('f.results', { n: this.results.length.toLocaleString() });
@@ -305,7 +313,8 @@ export class UnitBrowser {
         <td>${typeBadges(u)}</td><td class="hide-sm small">${esc(u.classes.join(', '))}</td>
         <td>${esc(u.stars)}</td><td class="num hide-sm">${u.cost ?? ''}</td>
         <td class="num">${u.hp}</td><td class="num">${u.atk}</td><td class="num">${u.rcv}</td>
-        <td class="num hide-sm">${u.cd ? `${u.cd[0]}→${u.cd[1]}` : ''}</td></tr>`;
+        <td class="num hide-sm">${u.cd ? `${u.cd[0]}→${u.cd[1]}` : ''}</td>
+        <td class="hide-sm small muted">${u.added ? esc(fmtDate(u.added)) : esc(t('u.new'))}</td></tr>`;
     }
     const dim = this.o.dimUnselected && !sel;
     return `<button class="uitem ${sel ? 'sel' : ''} ${dim ? 'dim' : ''}" data-uid="${u.id}" title="${esc(u.name)}">

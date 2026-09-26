@@ -86,6 +86,17 @@ export const TYPES = ['STR', 'DEX', 'QCK', 'PSY', 'INT'];
 export const CLASSES = ['Fighter', 'Slasher', 'Striker', 'Shooter', 'Free Spirit', 'Cerebral', 'Powerhouse', 'Driven', 'Evolver', 'Booster'];
 export const RARITIES = ['6+', '6', '5+', '5', '4+', '4', '3', '2', '1'];
 
+// Dates d'ajout { id: 'AAAA-MM-JJ' }
+let ADDED = {};
+async function loadDates() {
+  for (const url of CONFIG.datesUrls || []) {
+    try {
+      const res = await fetch(url, { cache: 'no-cache' });
+      if (res.ok) { ADDED = await res.json(); return; }
+    } catch (e) { /* source suivante */ }
+  }
+}
+
 function buildUnits(w) {
   const units = [];
   const raw = w.units || {};
@@ -131,6 +142,9 @@ function buildUnits(w) {
       minHP: u.minHP, minATK: u.minATK, minRCV: u.minRCV,
       hp: u.maxHP || 0, atk: u.maxATK || 0, rcv: u.maxRCV || 0,
       global: !!f.global,
+      // pas encore daté = ajouté tout récemment
+      added: ADDED[id] || null,
+      addedSort: ADDED[id] || '9999-99-99',
       flags: f,
       cd: cds[id] || cds[String(id)] || null,
     });
@@ -163,7 +177,8 @@ export async function loadCore() {
     setUnits(parts);
     emit('units');
   };
-  const [u, f, c, e] = await Promise.all([
+  const [, u, f, c, e] = await Promise.all([
+    loadDates(),
     loadFile('common/data/units.js', refresh('units')),
     loadFile('common/data/flags.js', refresh('flags')).catch(() => ({})),
     loadFile('common/data/cooldowns.js', refresh('cooldowns')).catch(() => ({})),

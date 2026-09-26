@@ -20,6 +20,11 @@ export const CONFIG = {
     'https://cdn.jsdelivr.net/gh/2Shankz/optc-db.github.io@master',
     'https://raw.githubusercontent.com/2Shankz/optc-db.github.io/master',
   ],
+  // Dates d'ajout des persos (mises à jour chaque jour par GitHub Actions)
+  datesUrls: [
+    'https://raw.githubusercontent.com/PicoreJr/optc-alliance/main/dates.json',
+    'dates.json',
+  ],
   // Page de détail d'un perso sur OPTC-DB (lien externe)
   optcDbUnitUrl: 'https://2shankz.github.io/optc-db.github.io/characters/#/view/',
 };
