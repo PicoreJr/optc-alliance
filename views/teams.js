@@ -152,12 +152,12 @@ function groupTitle(fmt, gi, count) {
 // Emplacements groupés : principaux / secondaires pour le PvP
 function slotsHtml(fmt, g, gi, lu, render) {
   const idx = fmt.slots.map((_, i) => i);
-  // l'ami capitaine (ou le capitaine coop) s'affiche à droite, comme en jeu
-  const last = (i) => (['friend', 'coop'].includes(fmt.slots[i]) ? 1 : 0);
-  const main = idx.filter((i) => fmt.slots[i] !== 'sub').sort((a, b) => last(a) - last(b) || a - b);
+  // comme en jeu : 2 colonnes de 3, ami capitaine (ou capitaine coop) en haut à gauche, capitaine en haut à droite
+  const first = (i) => (['friend', 'coop'].includes(fmt.slots[i]) ? 0 : 1);
+  const main = idx.filter((i) => fmt.slots[i] !== 'sub').sort((a, b) => first(a) - first(b) || a - b);
   const sub = idx.filter((i) => fmt.slots[i] === 'sub');
   const cols = (list) => list.map((i) => render(g.slots[i], i, `${gi}.${i}`)).join('');
-  if (!sub.length) return `<div class="lineup n${main.length}">${cols(main)}</div>`;
+  if (!sub.length) return `<div class="lineup ${main.length === 6 ? 'grid23' : `n${main.length}`}">${cols(main)}</div>`;
   return `<div class="lineup8">
     <div><p class="slot-group">${esc(t('slot.mains'))}</p><div class="lineup n5">${cols(main)}</div></div>
     <div><p class="slot-group">${esc(t('slot.subs'))}</p><div class="lineup n3">${cols(sub)}</div></div>
