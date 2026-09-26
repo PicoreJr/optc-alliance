@@ -91,6 +91,9 @@ function buildUnits(w) {
   const raw = w.units || {};
   const flags = w.flags || {};
   const cds = w.cooldowns || {};
+  const evos = w.evolutions || {};
+  const starsOf = (id) => { const x = raw[id] || raw[String(id)]; return x && x.stars != null ? String(x.stars) : ''; };
+  const isRR = (f) => !!f && Object.keys(f).some((k) => /rr/.test(k));
   // Les persos Dual / VS ont des sous-fiches « 1983-1 », « 1983-2 » qui portent leurs types
   const subTypes = {};
   for (const key in raw) {
@@ -117,7 +120,10 @@ function buildUnits(w) {
       classes,
       stars,
       starsNum: parseFloat(stars) || 0,
-      legend: stars.startsWith('6'),
+      // Légende = perso 6★/6+★ des sugos (rare recruit), sous sa forme finale
+      // (un 6★ qui évolue en 6+★ n'est pas compté deux fois)
+      legend: stars.startsWith('6') && isRR(f)
+        && ![].concat((evos[id] || {}).evolution || []).some((to) => starsOf(to).startsWith('6')),
       cost: u.cost,
       combo: u.combo,
       sockets: u.sockets || 0,
@@ -157,12 +163,13 @@ export async function loadCore() {
     setUnits(parts);
     emit('units');
   };
-  const [u, f, c] = await Promise.all([
+  const [u, f, c, e] = await Promise.all([
     loadFile('common/data/units.js', refresh('units')),
     loadFile('common/data/flags.js', refresh('flags')).catch(() => ({})),
     loadFile('common/data/cooldowns.js', refresh('cooldowns')).catch(() => ({})),
+    loadFile('common/data/evolutions.js', refresh('evolutions')).catch(() => ({})),
   ]);
-  Object.assign(parts, u, f, c);
+  Object.assign(parts, u, f, c, e);
   setUnits(parts);
 }
 

@@ -196,6 +196,8 @@ main { max-width: 1200px; margin: 0 auto; padding: 1rem; padding-bottom: 4rem; }
 }
 td .ubadge { position: static; }
 .uitem.sel { border-color: var(--accent); }
+.uitem.dim .thumb { filter: grayscale(.85); opacity: .4; }
+.uitem.dim:hover .thumb { opacity: .75; }
 .uitem.sel::after {
   content: "✓"; position: absolute; top: -6px; left: -6px; width: 20px; height: 20px; border-radius: 50%;
   background: var(--accent); color: #fff; font-size: .75rem; display: grid; place-items: center; font-weight: 700;

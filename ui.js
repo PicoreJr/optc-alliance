@@ -122,7 +122,7 @@ export class UnitBrowser {
     this.o = opts;
     this.s = Object.assign({
       q: '', types: [], classes: [], rarity: '', region: '', owner: '', notOwner: '',
-      ability: '', sort: 'idDesc', view: 'grid', more: false,
+      ability: '', sort: 'idDesc', view: 'grid', more: false, own: '',
     }, opts.state || {});
     this.results = [];
     this.shown = 0;
@@ -146,6 +146,9 @@ export class UnitBrowser {
       <div class="toolbar">
         <div class="row">
           <input type="search" class="input grow" data-f="q" placeholder="${esc(t('f.search'))}" value="${esc(s.q)}" autocomplete="off">
+          ${this.o.ownBox ? `<select class="input" data-f="own" aria-label="${esc(t('f.own'))}">
+            ${opt('', t('f.ownAll'), s.own)}${opt('owned', t('f.owned'), s.own)}${opt('missing', t('f.missing'), s.own)}
+          </select>` : ''}
           <button class="btn ghost small" data-act="more">${esc(s.more ? t('f.less') : t('f.more'))}</button>
           ${this.o.allowList ? `<div class="seg">
             <button class="${s.view === 'grid' ? 'on' : ''}" data-view="grid" title="${esc(t('view.grid'))}">▦</button>
@@ -214,7 +217,7 @@ export class UnitBrowser {
       e.target.textContent = this.s.more ? t('f.less') : t('f.more');
     };
     $('[data-act="reset"]', this.root).onclick = () => {
-      Object.assign(this.s, { q: '', types: [], classes: [], rarity: '', region: '', owner: '', notOwner: '', ability: '', sort: 'idDesc' });
+      Object.assign(this.s, { q: '', types: [], classes: [], rarity: '', region: '', owner: '', notOwner: '', ability: '', sort: 'idDesc', own: '' });
       this.renderToolbar(); this.refresh();
     };
     if (this.o.onToolbar) this.o.onToolbar(this.root);
@@ -236,9 +239,12 @@ export class UnitBrowser {
     const ownerBox = s.owner ? (members.find((m) => m.id === s.owner) || {}).box || {} : null;
     const notOwnerBox = s.notOwner ? (members.find((m) => m.id === s.notOwner) || {}).box || {} : null;
     const base = this.o.baseFilter;
+    const ownBox = this.o.ownBox ? this.o.ownBox() : null;
 
     let list = DATA.units.filter((u) => {
       if (base && !base(u)) return false;
+      if (ownBox && s.own === 'owned' && !ownBox[u.id]) return false;
+      if (ownBox && s.own === 'missing' && ownBox[u.id]) return false;
       if (qId !== null && u.id !== qId && !String(u.id).startsWith(q)) return false;
       if (qTokens && !qTokens.every((tk) => u.nameLc.includes(tk))) return false;
       if (types.size && !(u.types.some((ty) => types.has(ty)) || (types.has('DUAL') && u.dual))) return false;
@@ -301,7 +307,8 @@ export class UnitBrowser {
         <td class="num">${u.hp}</td><td class="num">${u.atk}</td><td class="num">${u.rcv}</td>
         <td class="num hide-sm">${u.cd ? `${u.cd[0]}→${u.cd[1]}` : ''}</td></tr>`;
     }
-    return `<button class="uitem ${sel ? 'sel' : ''}" data-uid="${u.id}" title="${esc(u.name)}">
+    const dim = this.o.dimUnselected && !sel;
+    return `<button class="uitem ${sel ? 'sel' : ''} ${dim ? 'dim' : ''}" data-uid="${u.id}" title="${esc(u.name)}">
       ${thumb(u.id)}<span class="uid">${u.id}</span>${badge ? `<span class="ubadge">${esc(badge)}</span>` : ''}
     </button>`;
   }
