@@ -130,6 +130,9 @@ label.check { flex-direction: row; align-items: center; gap: .5rem; margin: .6re
 .login-card label { text-align: left; }
 .login-card .logo { font-size: 2.6rem; line-height: 1; margin-bottom: .4rem; }
 .login-card h1 { margin-bottom: .2rem; }
+.pw-wrap { position: relative; display: block; }
+.pw-wrap .input { padding-right: 2.6rem; }
+.pw-eye { position: absolute; right: .25rem; top: 50%; transform: translateY(-50%); font-size: 1rem; }
 .loading { min-height: 60vh; display: grid; place-items: center; align-content: center; gap: 1rem; color: var(--muted); text-align: center; padding: 1rem; }
 .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

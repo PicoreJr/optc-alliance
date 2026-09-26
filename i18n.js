@@ -9,6 +9,7 @@ const DICT = {
     'login.submit': 'Entrer',
     'login.bad': 'Code incorrect',
     'login.checking': 'Vérification…',
+    'login.show': 'Afficher / masquer le code',
 
     'tab.chars': 'Personnages',
     'tab.teams': 'Équipes',
@@ -236,6 +237,7 @@ const DICT = {
     'login.submit': 'Enter',
     'login.bad': 'Wrong code',
     'login.checking': 'Checking…',
+    'login.show': 'Show / hide code',
 
     'tab.chars': 'Characters',
     'tab.teams': 'Teams',

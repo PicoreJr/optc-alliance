@@ -46,7 +46,7 @@ function logout() {
 
 function langSwitch() {
   const other = getLang() === 'fr' ? 'en' : 'fr';
-  return `<button class="btn ghost small lang" data-lang="${other}" title="Language">${other.toUpperCase()}</button>`;
+  return `<button type="button" class="btn ghost small lang" data-lang="${other}" title="Language">${other.toUpperCase()}</button>`;
 }
 function bindLang(scope, rerender) {
   $$('[data-lang]', scope).forEach((b) => b.onclick = () => { setLang(b.dataset.lang); rerender(); });
@@ -60,17 +60,28 @@ function showLogin(error = '') {
       <h1>${esc(CONFIG.allianceName)}</h1>
       <p class="muted">${esc(t('login.title'))}</p>
       <label class="block">${esc(t('login.code'))}
-        <input class="input" type="password" name="code" required autofocus autocomplete="current-password">
+        <span class="pw-wrap">
+          <input class="input" type="password" name="code" required autofocus
+            autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore>
+          <button type="button" class="icon-btn pw-eye" data-eye aria-label="${esc(t('login.show'))}" title="${esc(t('login.show'))}">👁</button>
+        </span>
       </label>
       <label class="check"><input type="checkbox" name="remember" checked> ${esc(t('login.remember'))}</label>
       <p class="error" role="alert">${esc(error)}</p>
       <button class="btn primary block" type="submit">${esc(t('login.submit'))}</button>
     </form></div>`;
-  bindLang(root, () => showLogin(error));
+  bindLang(root, () => showLogin());
   const form = $('form', root);
+  // « new-password » : le navigateur ne colle pas un mot de passe enregistré dans ce champ
+  const codeInput = form.code;
+  codeInput.addEventListener('input', () => { const er = $('.error', root); if (er) er.textContent = ''; });
+  $('[data-eye]', form).onclick = () => {
+    codeInput.type = codeInput.type === 'password' ? 'text' : 'password';
+    codeInput.focus();
+  };
   form.onsubmit = async (e) => {
     e.preventDefault();
-    const code = form.code.value.trim();
+    const code = form.code.value.normalize('NFC').trim();
     if (!code) return;
     const btn = $('button[type=submit]', form);
     btn.disabled = true; btn.textContent = t('login.checking');
