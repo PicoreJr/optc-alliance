@@ -152,7 +152,9 @@ function groupTitle(fmt, gi, count) {
 // Emplacements groupés : principaux / secondaires pour le PvP
 function slotsHtml(fmt, g, gi, lu, render) {
   const idx = fmt.slots.map((_, i) => i);
-  const main = idx.filter((i) => fmt.slots[i] !== 'sub');
+  // l'ami capitaine (ou le capitaine coop) s'affiche à droite, comme en jeu
+  const last = (i) => (['friend', 'coop'].includes(fmt.slots[i]) ? 1 : 0);
+  const main = idx.filter((i) => fmt.slots[i] !== 'sub').sort((a, b) => last(a) - last(b) || a - b);
   const sub = idx.filter((i) => fmt.slots[i] === 'sub');
   const cols = (list) => list.map((i) => render(g.slots[i], i, `${gi}.${i}`)).join('');
   if (!sub.length) return `<div class="lineup n${main.length}">${cols(main)}</div>`;
