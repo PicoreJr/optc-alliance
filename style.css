@@ -345,6 +345,13 @@ td .ubadge { position: static; }
 }
 .slot-lead.on { background: #e0a100; border-color: #e0a100; color: #fff; }
 .edit-group .lineup8 { max-width: 720px; }
+/* 6 persos : 2 colonnes de 3, support à droite de chaque perso */
+.lineup.grid23 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; max-width: 400px; }
+.lineup.grid23 .slot-col { flex-direction: row; align-items: flex-start; gap: 5px; }
+.lineup.grid23 .slot-col > .slot:first-child { flex: 0 0 62%; }
+.lineup.grid23 .slot.support { flex: 1 1 auto; margin-top: 10%; }
+.lineup.grid23 .slot.support .slot-img { width: 100%; }
+.edit-group .lineup.grid23 { max-width: 440px; margin: 0 auto; }
 
 /* ============ Sous-onglets ============ */
 .subtabs { display: flex; gap: .3rem; overflow-x: auto; scrollbar-width: none; margin: 0 0 .9rem; border-bottom: 1px solid var(--border); }
