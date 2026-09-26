@@ -55,7 +55,8 @@ function bindLang(scope, rerender) {
 }
 
 function showLogin(error = '') {
-  root.innerHTML = `<div class="login">
+  root.innerHTML = `<div class="login"><div class="login-box">
+    <img class="login-hero" src="shishisonson.webp" alt="" width="360" height="360">
     <form class="login-card" autocomplete="off">
       <div class="row between"><span></span>${langSwitch()}</div>
       <div class="logo" aria-hidden="true">☠</div>
@@ -71,7 +72,7 @@ function showLogin(error = '') {
       <label class="check"><input type="checkbox" name="remember" checked> ${esc(t('login.remember'))}</label>
       <p class="error" role="alert">${esc(error)}</p>
       <button class="btn primary block" type="submit">${esc(t('login.submit'))}</button>
-    </form></div>`;
+    </form></div></div>`;
   bindLang(root, () => showLogin());
   const form = $('form', root);
   // « new-password » : le navigateur ne colle pas un mot de passe enregistré dans ce champ
