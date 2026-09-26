@@ -1,0 +1,43 @@
+name: Guide PvP (fiche de Nydato)
+
+on:
+  schedule:
+    - cron: '41 5 * * *'   # tous les jours vers 5h40 (UTC)
+  workflow_dispatch:        # bouton « Run workflow » pour lancer à la main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: guide-pvp
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Installer sharp (lecture des images)
+        run: npm install --no-save --no-package-lock sharp@0.33.5
+      - name: Lire la fiche et mettre à jour le guide
+        id: guide
+        run: node scripts/update-guide.mjs || echo "failed=1" >> "$GITHUB_OUTPUT"
+      - name: Enregistrer si le guide a changé
+        run: |
+          git add pvp-guide.json scripts/guide-refs.json
+          if git diff --cached --quiet; then echo "Rien à enregistrer"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Guide PvP : mise à jour depuis la fiche de Nydato"
+          git pull --rebase
+          git push
+      - name: Signaler un problème de lecture
+        if: steps.guide.outputs.failed == '1'
+        run: |
+          echo "::error::La fiche n'a pas pu être lue entièrement : la version précédente du guide a été gardée pour les parties concernées."
+          exit 1
