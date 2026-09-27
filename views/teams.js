@@ -2,9 +2,10 @@
 // (PvP, Kizuna, Treasure Map, PKA, Coop, Blitz).
 import { t, fmtDate } from '../i18n.js';
 import { EVENTS, FORMATS } from '../config.js';
-import { DATA } from '../data.js';
-import { esc, $, $$, openModal, confirmBox, toast, thumb, pickUnit, debounce } from '../ui.js';
+import { DATA, SHIPS, loadShips, shipOf } from '../data.js';
+import { esc, $, $$, openModal, confirmBox, toast, thumb, shipThumb, pickUnit, debounce } from '../ui.js';
 import { openUnit } from './chars.js';
+import { openShip, pickShip } from './ships.js';
 
 export const eventById = (id) => EVENTS.find((e) => e.id === id) || EVENTS[EVENTS.length - 1];
 export const formatOf = (eventId) => FORMATS[eventById(eventId).format] || FORMATS.standard;
@@ -12,7 +13,7 @@ const hasSupport = (fmt, i) => (Array.isArray(fmt.supports) ? !!fmt.supports[i] 
 const newGroup = (fmt) => ({ slots: fmt.slots.map(() => ({ u: null, s: null })) });
 
 function emptyLineup(fmt) {
-  return { groups: Array.from({ length: fmt.groups.min }, () => newGroup(fmt)), ship: '', leader: null };
+  return { groups: Array.from({ length: fmt.groups.min }, () => newGroup(fmt)), ship: '', shipId: null, leader: null };
 }
 
 // Remet une composition au format de son mode (anciens formats compris)
@@ -30,7 +31,9 @@ export function normalizeLineup(team) {
         s: hasSupport(fmt, i) ? (g.slots || [])[i]?.s ?? null : null,
       })),
     })),
+    // bateau : son ID dans ships.json + son nom (les anciennes équipes n'ont que le nom tapé à la main)
     ship: fmt.ship ? lu.ship || '' : '',
+    shipId: fmt.ship ? Number(lu.shipId) || null : null,
     leader: fmt.leader ? lu.leader || null : null,
   };
 }
@@ -95,7 +98,7 @@ export function renderTeamList(root, app, opts) {
       if (state.event && tm.event_type !== state.event) return false;
       if (fm && !feasibleMembers(tm, [fm]).length) return false;
       if (q) {
-        const hay = [tm.title, tm.boss, tm.notes, tm.author, ...allUnits(tm).map((id) => DATA.byId.get(id)?.name)].join(' ').toLowerCase();
+        const hay = [tm.title, tm.boss, tm.notes, tm.author, (tm.units || {}).ship, ...allUnits(tm).map((id) => DATA.byId.get(id)?.name)].join(' ').toLowerCase();
         if (!q.split(/\s+/).every((w) => hay.includes(w))) return false;
       }
       return true;
@@ -106,6 +109,7 @@ export function renderTeamList(root, app, opts) {
     $$('[data-team]', box).forEach((card) => {
       const tm = app.teams.find((x) => x.id === card.dataset.team);
       $$('[data-uid]', card).forEach((n) => n.onclick = () => openUnit(Number(n.dataset.uid), app));
+      $$('[data-ship-id]', card).forEach((n) => n.onclick = () => openShip(Number(n.dataset.shipId), app));
       const on = (sel, fn) => { const b = $(sel, card); if (b) b.onclick = fn; };
       on('[data-edit]', () => openEditor(app, tm, opts, redraw));
       on('[data-dup]', () => openEditor(app, { ...tm, id: null, title: tm.title ? tm.title + ' (2)' : '' }, opts, redraw));
@@ -182,7 +186,7 @@ function teamCard(tm, app, showEvent) {
         ${slotTile(sl.u, t('slot.' + fmt.slots[i]), '', lu.leader === k && !!sl.u)}
         ${hasSupport(fmt, i) && sl.s ? slotTile(sl.s, t('slot.support'), 'support') : ''}
       </div>`)}`).join('')}
-    ${lu.ship ? `<p class="small"><strong>${esc(t('t.ship'))} :</strong> ${esc(lu.ship)}</p>` : ''}
+    ${shipLine(lu)}
     ${leaderLine(lu)}
     ${tm.notes ? `<div class="notes">${esc(tm.notes)}</div>` : ''}
     ${hasReq ? `<p class="small feasible" title="${esc(t('t.feasibleHint'))}"><strong>${esc(t('t.feasible'))} :</strong>
@@ -196,6 +200,16 @@ function teamCard(tm, app, showEvent) {
       </span>
     </footer>
   </article>`;
+}
+
+// Bateau de l'équipe (vignette cliquable si on le connaît, sinon le nom tapé)
+function shipLine(lu) {
+  if (!lu.ship && !lu.shipId) return '';
+  const s = shipOf(lu.shipId, lu.ship);
+  const id = s ? s.id : lu.shipId;
+  const name = s ? s.name : lu.ship;
+  return `<p class="small ship-line"><strong>${esc(t('t.ship'))} :</strong>
+    ${id ? `<button class="ship-chip" data-ship-id="${id}" title="${esc(name)}">${shipThumb(id, 'xs', name)}<span>${esc(name)}</span></button>` : esc(name)}</p>`;
 }
 
 function leaderLine(lu) {
@@ -245,7 +259,7 @@ export function openEditor(app, team, opts, onSaved) {
           ${hasSupport(fmt, i) ? editSlot(sl.s, t('slot.support'), `${k}.s`, 'support') : ''}
         </div>`)}
       </div>`).join('')}
-      ${fmt.ship ? `<label class="block">${esc(t('t.ship'))}<input class="input" data-ship value="${esc(lu.ship)}" maxlength="60"></label>` : ''}
+      ${fmt.ship ? shipField(lu) : ''}
       <label class="block">${esc(t('t.notes'))}<textarea class="input" data-f="notes" rows="5" placeholder="${esc(t('t.notesPh'))}" maxlength="4000">${esc(draft.notes)}</textarea></label>`;
 
     $$('[data-f]', m.body).forEach((inp) => inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => {
@@ -253,12 +267,17 @@ export function openEditor(app, team, opts, onSaved) {
         const before = allSlotUnits(draft.units);
         const keep = { ...draft.units };
         draft.event_type = inp.value;
-        draft.units = { ...keep, ...refill(formatOf(draft.event_type), before, draft.units.ship) };
+        draft.units = { ...keep, ...refill(formatOf(draft.event_type), before, draft.units.ship, draft.units.shipId) };
         draw();
       } else draft[inp.dataset.f] = inp.value;
     }));
-    const ship = $('[data-ship]', m.body);
-    if (ship) ship.oninput = () => { draft.units.ship = ship.value; };
+    const shipBtn = $('[data-ship-pick]', m.body);
+    if (shipBtn) shipBtn.onclick = async () => {
+      const s = await pickShip({ app, current: draft.units.shipId });
+      if (s) { draft.units.shipId = s.id; draft.units.ship = s.name; draw(); }
+    };
+    const shipClear = $('[data-ship-clear]', m.body);
+    if (shipClear) shipClear.onclick = () => { draft.units.shipId = null; draft.units.ship = ''; draw(); };
     $$('[data-slot]', m.body).forEach((b) => b.onclick = async () => {
       const [gi, i, k] = b.dataset.slot.split('.');
       const u = await pickUnit({ title: t('t.pick'), members: () => app.members });
@@ -280,6 +299,10 @@ export function openEditor(app, team, opts, onSaved) {
   };
 
   $('[data-a="cancel"]', m.el).onclick = () => m.close();
+  // bateau tapé à la main dans une ancienne équipe : on le retrouve dès que la liste est chargée
+  if (!SHIPS.list.length && draft.units.ship && !draft.units.shipId) {
+    loadShips().then(() => { if (m.el.isConnected) draw(); }).catch(() => {});
+  }
   $('[data-a="save"]', m.el).onclick = async (e) => {
     if (!allSlotUnits(draft.units).length) { toast(t('t.needUnit'), 'err'); return; }
     e.target.disabled = true;
@@ -308,15 +331,35 @@ function editSlot(id, label, key, cls = '', lead = null) {
     <span class="slot-label">${esc(label)}</span></div>`;
 }
 
+// Choix du bateau dans l'éditeur (liste des bateaux du jeu)
+function shipField(lu) {
+  const s = shipOf(lu.shipId, lu.ship);
+  // ancienne équipe dont le nom correspond à un bateau connu : on garde son ID
+  if (s && !lu.shipId) { lu.shipId = s.id; lu.ship = s.name; }
+  const id = s ? s.id : lu.shipId;
+  const name = s ? s.name : lu.ship;
+  return `<div class="block ship-field"><span class="field-label">${esc(t('t.ship'))}</span>
+    <div class="ship-pick">
+      <button type="button" class="ship-pick-btn ${name ? '' : 'empty'}" data-ship-pick title="${esc(t('sh.pick'))}">
+        ${id ? shipThumb(id, '', name) : `<span class="plus">${name ? '?' : '+'}</span>`}
+        <span class="grow">${esc(name || t('sh.pick'))}</span>
+      </button>
+      ${name ? `<button type="button" class="btn ghost small" data-ship-clear title="${esc(t('sh.clear'))}">✕<span class="hide-sm"> ${esc(t('sh.clear'))}</span></button>` : ''}
+    </div>
+    ${name && !id ? `<p class="muted small">${esc(t('sh.legacy'))}</p>` : ''}
+  </div>`;
+}
+
 function allSlotUnits(lu) {
   const out = [];
   lu.groups.forEach((g) => g.slots.forEach((sl) => { if (sl.u) out.push({ u: sl.u, s: sl.s }); }));
   return out;
 }
 // Quand on change de mode, on replace les persos déjà choisis dans le nouveau format
-function refill(fmt, units, ship) {
+function refill(fmt, units, ship, shipId) {
   const lu = emptyLineup(fmt);
   lu.ship = fmt.ship ? ship : '';
+  lu.shipId = fmt.ship ? shipId || null : null;
   let gi = 0; let i = 0;
   for (const x of units) {
     if (i >= fmt.slots.length) {

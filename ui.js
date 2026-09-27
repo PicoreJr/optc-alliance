@@ -1,7 +1,8 @@
 // Outils d'interface : échappement, modales, notifications, vignettes,
 // et le navigateur de personnages réutilisé partout (table, box, équipes).
 import { t, fmtDate } from './i18n.js';
-import { DATA, TYPES, CLASSES, RARITIES, thumbUrl, THUMB_STAGES, NOIMAGE, loadDetails, abilityText } from './data.js';
+import { DATA, TYPES, CLASSES, RARITIES, thumbUrl, THUMB_STAGES, NOIMAGE, loadDetails, abilityText,
+  SHIPS, SHIP_STAGES, SHIP_BIG_STAGES, shipThumbUrl, shipBigUrl, shipIconUrl } from './data.js';
 
 // ---------- bases ----------
 export function esc(s) {
@@ -34,6 +35,28 @@ export function thumb(id, extraClass = '') {
   return `<img class="thumb t-${type} ${extraClass}" loading="lazy" decoding="async" data-id="${Number(id)}"
     src="${thumbUrl(Number(id))}" onerror="__thumbErr(this)" alt="${esc(name)}" title="${esc(name)}">`;
 }
+// Bateaux : icône, puis grande image (CDN, puis GitHub), puis une image neutre.
+// Pour la grande image, c'est l'inverse (et l'icône s'affiche en petit).
+window.__shipErr = (img) => {
+  const big = img.dataset.big != null;
+  const stages = big ? SHIP_BIG_STAGES : SHIP_STAGES;
+  const next = Number(img.dataset.stage || 0) + 1;
+  img.dataset.stage = next;
+  if (next < stages.length) {
+    img.src = stages[next](Number(img.dataset.ship));
+    if (big && next >= stages.length / 2) img.classList.add('small');
+  } else { img.onerror = null; img.src = NOIMAGE; }
+};
+export function shipArt(id, name = '') {
+  return `<img class="ship-art" decoding="async" data-big data-ship="${Number(id)}" src="${shipBigUrl(Number(id))}"
+    onerror="__shipErr(this)" alt="${esc(name)}">`;
+}
+export function shipThumb(id, extraClass = '', fallbackName = '') {
+  const s = SHIPS.byId.get(Number(id));
+  const name = s ? s.name : fallbackName || `#${id}`;
+  return `<img class="thumb ship-thumb ${extraClass}" loading="lazy" decoding="async" data-ship="${Number(id)}"
+    src="${shipThumbUrl(Number(id))}" onerror="__shipErr(this)" alt="${esc(name)}" title="${esc(name)}">`;
+}
 export function typeBadges(u) {
   const dual = u.dual ? `<span class="badge t-DUAL">${esc(t('dual'))}</span>` : '';
   return dual + u.types.map((ty) => `<span class="badge t-${ty}">${ty}</span>`).join('');
@@ -46,6 +69,21 @@ export function richText(s) {
     .replace(/\[([A-Z]{1,12})\]/g, '<span class="orb">$1</span>')
     .replace(/\[([^\]<>]{2,60})\]/g, '<span class="tag">$1</span>')
     .replace(/\n/g, '<br>');
+}
+
+// Effets des bateaux : comme richText, avec les icônes d'OPTC Ships ([EOT_HEAL]…)
+const SHIP_ICONS = {
+  EOT_HEAL: ['eot_heal.png', 'EoT heal'],
+  EOT_HEAL_TO_DAMAGE: ['heal_slot_to_damage.png', 'EoT heal → damage'],
+  HEAL_TO_DAMAGE: ['heal_to_damage.png', 'Heal → damage'],
+  THRESHOLD_DAMAGE_CUT: ['threshold_damagecut.png', 'Threshold damage cut'],
+  ATK_UP: ['atk_up.png', 'ATK up'],
+};
+export function shipText(s) {
+  return richText(s).replace(/<span class="tag">([^<]+)<\/span>/g, (m, k) => (SHIP_ICONS[k]
+    ? `<img class="fx-icon" src="${shipIconUrl(SHIP_ICONS[k][0])}" alt="${SHIP_ICONS[k][1]}" title="${SHIP_ICONS[k][1]}" onerror="this.replaceWith(this.alt)">`
+    // étiquettes ([Cross Guild] [Four Emperors]…) bien séparées
+    : `<span class="tag pill">${k}</span>`));
 }
 
 // ---------- notifications ----------

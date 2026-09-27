@@ -240,3 +240,62 @@ export function bigUrl(id) {
   return `${CONFIG.imageBases[CONFIG.imageBases.length - 1]}/api/images/full/transparent/${folder(id)}/${pad}.png`;
 }
 export const NOIMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#8883"/><text x="5" y="6.6" font-size="5" text-anchor="middle" fill="#8889">?</text></svg>');
+
+// ---------- bateaux ----------
+// ships.json (voir scripts/update-ships.mjs) : { source, ships: [{ id, name, effect, special, cd, levels, mods… }] }
+export const SHIPS = { list: [], byId: new Map() };
+
+let shipsPromise = null;
+export function loadShips() {
+  if (!shipsPromise) {
+    shipsPromise = (async () => {
+      let lastErr;
+      for (const url of CONFIG.shipsUrls || []) {
+        try {
+          const res = await fetch(url, { cache: 'no-cache' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const list = ((await res.json()) || {}).ships || [];
+          if (!list.length) throw new Error('vide');
+          SHIPS.list = list.map((s) => ({
+            ...s,
+            nameLc: s.name.toLowerCase(),
+            // texte des effets (recherche et filtres type / classe)
+            text: [s.effect, s.special, s.specialEffect1, s.specialEffect2].filter(Boolean).join(' '),
+          }));
+          SHIPS.byId = new Map(SHIPS.list.map((s) => [s.id, s]));
+          emit('ships');
+          return SHIPS.list;
+        } catch (e) { lastErr = e; }
+      }
+      shipsPromise = null;
+      throw lastErr || new Error('ships');
+    })();
+  }
+  return shipsPromise;
+}
+
+// Bateau d'une équipe : par son ID, sinon par le nom tapé à la main (anciennes équipes)
+export function shipOf(id, name) {
+  if (id && SHIPS.byId.has(Number(id))) return SHIPS.byId.get(Number(id));
+  const n = String(name || '').trim().toLowerCase();
+  return n ? SHIPS.list.find((s) => s.nameLc === n) || null : null;
+}
+
+// Vignette (icône), puis grande image, sur chaque source
+const pad4 = (id) => String(id).padStart(4, '0');
+export const SHIP_STAGES = [
+  ...CONFIG.shipImageBases.map((b) => (id) => `${b}/icon/ship_${pad4(id)}_thumbnail.png`),
+  ...CONFIG.shipImageBases.map((b) => (id) => `${b}/full/ship_${pad4(id)}_full.png`),
+];
+export function shipThumbUrl(id, stage = 0) {
+  return (SHIP_STAGES[stage] || SHIP_STAGES[0])(id);
+}
+// Grande image : image complète, puis l'icône si elle manque
+export const SHIP_BIG_STAGES = [...SHIP_STAGES.slice(CONFIG.shipImageBases.length), ...SHIP_STAGES.slice(0, CONFIG.shipImageBases.length)];
+export function shipBigUrl(id, stage = 0) {
+  return (SHIP_BIG_STAGES[stage] || SHIP_BIG_STAGES[0])(id);
+}
+// Petites icônes utilisées dans les textes d'effets ([EOT_HEAL]…)
+export function shipIconUrl(file) {
+  return `${CONFIG.shipImageBases[0]}/${file}`;
+}

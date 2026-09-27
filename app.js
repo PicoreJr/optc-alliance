@@ -2,9 +2,10 @@
 import { CONFIG } from './config.js';
 import { t, getLang, setLang } from './i18n.js';
 import { api, ApiError } from './api.js';
-import { DATA, loadCore, loadDetails } from './data.js';
+import { DATA, loadCore, loadDetails, loadShips } from './data.js';
 import { esc, $, $$, toast, openModal } from './ui.js';
 import { renderChars, refreshChars } from './views/chars.js';
+import { renderShips } from './views/ships.js';
 import { renderPvp } from './views/pvp.js';
 import { renderKizuna } from './views/kizuna.js';
 import { renderMode } from './views/modes.js';
@@ -116,8 +117,9 @@ async function start(session) {
       <button class="btn primary" onclick="location.reload()">↻</button></div>`;
     return;
   }
-  // les capacités (fichier plus lourd) arrivent en arrière-plan
+  // les capacités (fichier plus lourd) et les bateaux arrivent en arrière-plan
   loadDetails().catch(() => {});
+  loadShips().catch(() => {});
   shell();
   route();
 }
@@ -134,6 +136,7 @@ function shell() {
       <a class="brand" href="#/chars">${esc(CONFIG.allianceName)}</a>
       <nav class="tabs">
         <a href="#/chars" data-tab="chars">${esc(t('tab.chars'))}</a>
+        <a href="#/ships" data-tab="ships">${esc(t('tab.ships'))}</a>
         ${TABS.map((id) => `<a href="#/${id}" data-tab="${id}">${esc(t('tab.' + id))}</a>`).join('')}
       </nav>
       <div class="top-actions">
@@ -164,6 +167,7 @@ function route() {
   if (page === 'pvp') renderPvp(main, app, arg, arg2);
   else if (page === 'kizuna') renderKizuna(main, app, arg, arg2);
   else if (MODE_TABS.includes(page)) renderMode(main, app, page);
+  else if (page === 'ships') renderShips(main, app);
   else if (page === 'alliance') renderAlliance(main, app);
   else if (page === 'member') renderMember(main, app, arg);
   else renderChars(main, app);
