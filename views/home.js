@@ -45,7 +45,7 @@ export function renderHome(main, app) {
       </div>
       ${members.length ? `<div class="card home-wide">
         <h2>${esc(t('home.members'))}</h2>
-        <div class="member-grid">${members.map((m) => memberCard(m)).join('')}</div>
+        <div class="member-grid">${members.map((m) => memberCard(m, false, app.me)).join('')}</div>
         <a class="small" href="#/alliance">${esc(t('home.allMembers'))} →</a>
       </div>` : ''}
     </div>

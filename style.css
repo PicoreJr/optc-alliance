@@ -759,3 +759,30 @@ h1 { animation: brush .6s cubic-bezier(.3, .7, .2, 1) .08s both; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* ============ Qui es-tu ? + membre connecté ============ */
+.who { min-height: 100vh; padding: 2rem 1rem; background: var(--bg) var(--paper); }
+.who-box { max-width: 980px; margin: 0 auto; }
+.who-box > .row h1 { margin: 0; }
+.who-box > p { margin: .6rem 0 1rem; }
+.who-box > .input { margin-bottom: 1rem; max-width: 360px; }
+.who-grid { margin-bottom: 1.2rem; }
+.who-card { border-radius: var(--radius); cursor: pointer; outline: none; transition: transform .15s ease; }
+.who-card .member-card { height: 100%; }
+.who-card:hover { transform: translate(-2px, -2px); }
+.who-card:hover .member-card, .who-card:focus-visible .member-card { box-shadow: 5px 5px 0 var(--ink); }
+.who-card:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.who-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .8rem; }
+.me-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .2rem .55rem .2rem .2rem; max-width: 11rem; }
+.me-chip .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar, .thumb.avatar { width: 26px; height: 26px; border-radius: 50%; flex: none; object-fit: cover; }
+.avatar-empty { display: grid; place-items: center; background: #f2efe8; color: #111; font-weight: 800; font-size: .8rem; }
+@media (max-width: 520px) { .me-chip { padding: .2rem; } }
+.me-badge {
+  display: inline-block; vertical-align: middle; margin-left: .25rem; padding: 0 .35rem; border-radius: 3px;
+  font-size: .62rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: var(--ink); color: var(--accent-text);
+}
+.member-card.themed .me-badge { background: #f2efe8; color: #111; }
+.member-card.is-me { outline: 3px solid var(--ink); outline-offset: 2px; }
+.lock-note { margin: 0 0 .7rem; padding: .45rem .65rem; background: var(--surface-2); border-left: 3px solid var(--ink); border-radius: var(--radius); }
+.who-actions { margin-top: .9rem; }

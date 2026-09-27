@@ -81,6 +81,15 @@ plus la clé réservée `_card: { u: <id perso> }` = thème de la carte de membr
 Sugo-Fest, drapeau `superlrr`). Rangé dans la box pour ne rien changer côté base : pour compter ou parcourir les
 persos, ne garder que les clés numériques (voir `boxCount`).
 
+## Membre connecté (« Qui es-tu ? »)
+- Après le code, l'utilisateur choisit son pseudo (`showWhoAmI` dans `app.js`) ou « Je ne suis pas dans la liste »
+  (visiteur). Le choix est gardé avec la session (`optc.session` : `{ code, role, me, visitor }`, via `saveSession`).
+- `app.me` = id du membre ; `app.canEdit(id)` = admin ou sa propre fiche. Les autres fiches sont en lecture seule
+  (`profileView`, box sans modification). Badge en haut à droite (`meChip`), badge « Toi » sur sa carte,
+  auteur des nouvelles équipes rempli avec son pseudo.
+- **Ce n'est pas une sécurité** : tout le monde partage le code d'alliance et peut choisir n'importe quel pseudo ;
+  une vraie protection demanderait un code par membre vérifié côté Supabase.
+
 ## Conventions
 - Rendu par gabarits HTML (`innerHTML`) : **toute valeur dynamique passe par `esc()`** (ou `richText`/`shipText`,
   qui échappent déjà).

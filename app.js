@@ -3,7 +3,7 @@ import { CONFIG } from './config.js';
 import { t, getLang, setLang } from './i18n.js';
 import { api, ApiError } from './api.js';
 import { DATA, loadCore, loadDetails, loadShips } from './data.js';
-import { esc, $, $$, toast, openModal } from './ui.js';
+import { esc, $, $$, toast, openModal, thumb } from './ui.js';
 import { renderChars, refreshChars } from './views/chars.js';
 import { renderShips, teamHref } from './views/ships.js';
 import { renderHome } from './views/home.js';
@@ -11,7 +11,7 @@ import { renderTeamPage } from './views/teams.js';
 import { renderPvp } from './views/pvp.js';
 import { renderKizuna } from './views/kizuna.js';
 import { renderMode } from './views/modes.js';
-import { renderAlliance, renderMember } from './views/alliance.js';
+import { renderAlliance, renderMember, memberCard, cardTheme } from './views/alliance.js';
 
 const root = document.getElementById('app');
 document.title = CONFIG.allianceName;
@@ -23,7 +23,12 @@ const app = {
   role: null,
   members: [],
   teams: [],
+  me: null,          // id du membre qui utilise cet appareil (choisi après le code)
+  visitor: false,    // a choisi « je ne suis pas dans la liste »
   get isAdmin() { return this.role === 'admin'; },
+  // chacun ne modifie que sa fiche ; les admins peuvent tout modifier
+  canEdit(memberId) { return this.isAdmin || (!!this.me && this.me === memberId); },
+  onMeChange() { refreshMeChip(); },
   async api(fn, arg) {
     return api[fn](this.code, arg);
   },
@@ -42,8 +47,15 @@ function stored() {
 function store(s) {
   try { if (s) localStorage.setItem('optc.session', JSON.stringify(s)); else localStorage.removeItem('optc.session'); } catch (e) { /* ignore */ }
 }
+// Enregistre la session (code, rôle, membre choisi) là où elle était déjà gardée
+function saveSession() {
+  const s = { code: app.code, role: app.role, me: app.me, visitor: app.visitor };
+  if (stored()) store(s);
+  else try { sessionStorage.setItem('optc.session', JSON.stringify(s)); } catch (e) { /* ignore */ }
+}
+
 function logout() {
-  app.code = null; app.role = null; app.members = []; app.teams = [];
+  app.code = null; app.role = null; app.members = []; app.teams = []; app.me = null; app.visitor = false;
   store(null);
   try { sessionStorage.removeItem('optc.session'); } catch (e) { /* ignore */ }
   showLogin();
@@ -122,8 +134,78 @@ async function start(session) {
   // les capacités (fichier plus lourd) et les bateaux arrivent en arrière-plan
   loadDetails().catch(() => {});
   loadShips().catch(() => {});
+  // quel membre utilise cet appareil ? (déjà choisi, sinon on le demande)
+  app.me = app.members.some((m) => m.id === session.me) ? session.me : null;
+  app.visitor = !app.me && !!session.visitor;
+  if (!app.me && !app.visitor && app.members.length) { showWhoAmI(); return; }
   shell();
   route();
+}
+
+// ---------- « Qui es-tu ? » ----------
+function showWhoAmI() {
+  const list = [...app.members].sort((a, b) => a.pseudo.localeCompare(b.pseudo));
+  root.innerHTML = `<div class="who"><div class="who-box">
+      <div class="row between"><h1>${esc(t('who.title'))}</h1>${langSwitch()}</div>
+      <p class="muted">${esc(t('who.hint'))}</p>
+      ${list.length > 8 ? `<input type="search" class="input" data-who-q placeholder="${esc(t('who.search'))}" autocomplete="off">` : ''}
+      <div class="member-grid who-grid">${list.map((m) => `<div class="who-card" role="button" tabindex="0" data-me="${esc(m.id)}"
+        data-name="${esc(m.pseudo.toLowerCase())}">${memberCard(m, true)}</div>`).join('')}</div>
+      <div class="who-foot">
+        <button class="btn ghost small" data-visitor>${esc(t('who.visitor'))}</button>
+        <span class="muted small">${esc(t('who.visitorHint'))}</span>
+      </div>
+    </div></div>`;
+  bindLang(root, showWhoAmI);
+  const choose = (id) => {
+    app.me = id; app.visitor = !id;
+    saveSession();
+    shell(); route();
+    const m = app.members.find((x) => x.id === id);
+    if (m) toast(t('who.hello', { name: m.pseudo }));
+  };
+  $$('[data-me]', root).forEach((c) => {
+    c.onclick = () => choose(c.dataset.me);
+    c.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(c.dataset.me); } };
+  });
+  $('[data-visitor]', root).onclick = () => choose(null);
+  const q = $('[data-who-q]', root);
+  if (q) q.oninput = () => $$('[data-me]', root).forEach((c) => c.classList.toggle('hidden', !c.dataset.name.includes(q.value.trim().toLowerCase())));
+}
+
+// Badge « connecté » en haut à droite : illustration du thème (ou initiale) + pseudo
+function meChip() {
+  const m = app.me && app.members.find((x) => x.id === app.me);
+  const art = m && cardTheme(m);
+  const initial = m ? m.pseudo.replace(/^\s*\[[^\]]*\]\s*/, '').charAt(0).toUpperCase() : '?';
+  const avatar = art ? thumb(art, 'avatar') : `<span class="avatar avatar-empty">${esc(initial || '?')}</span>`;
+  const name = m ? m.pseudo : t('who.visitorShort');
+  return `<button class="btn ghost small me-chip" data-me-chip title="${esc(t('who.connectedAs', { name }))}">${avatar}<span class="lbl">${esc(name)}</span></button>`;
+}
+function refreshMeChip() {
+  const old = $('[data-me-chip]');
+  if (!old) return;
+  old.outerHTML = meChip();
+  $('[data-me-chip]').onclick = openMeMenu;
+}
+function openMeMenu() {
+  const m = app.me && app.members.find((x) => x.id === app.me);
+  const menu = openModal({
+    title: esc(m ? t('who.connectedAs', { name: m.pseudo }) : t('who.visitorShort')), size: 'small',
+    body: `${m ? memberCard(m, true) : `<p class="muted">${esc(t('who.visitorHint'))}</p>`}
+      <div class="row wrap who-actions">
+        ${m ? `<button class="btn primary" data-a="profile">${esc(t('who.myProfile'))}</button>` : ''}
+        <button class="btn" data-a="switch">${esc(t('who.switch'))}</button>
+      </div>`,
+  });
+  const prof = $('[data-a="profile"]', menu.el);
+  if (prof) prof.onclick = () => { menu.close(); location.hash = `#/member/${m.id}`; };
+  $('[data-a="switch"]', menu.el).onclick = () => {
+    menu.close();
+    app.me = null; app.visitor = false;
+    saveSession();
+    showWhoAmI();
+  };
 }
 
 // Nouvelles données de persos disponibles (mise à jour en arrière-plan)
@@ -142,6 +224,7 @@ function shell() {
         ${TABS.map((id) => `<a href="#/${id}" data-tab="${id}">${esc(t('tab.' + id))}</a>`).join('')}
       </nav>
       <div class="top-actions">
+        ${meChip()}
         ${app.isAdmin ? `<button class="btn ghost small admin" data-codes title="${esc(t('nav.codes'))}">★<span class="lbl"> ${esc(t('nav.admin'))}</span></button>` : ''}
         ${langSwitch()}
         <button class="btn ghost small" data-logout title="${esc(t('nav.logout'))}"><span class="lbl">${esc(t('nav.logout'))}</span><span class="ico" aria-hidden="true">⏻</span></button>
@@ -150,6 +233,7 @@ function shell() {
     <main id="main"></main>`;
   bindLang(root, () => { shell(); route(); });
   $('[data-logout]', root).onclick = logout;
+  $('[data-me-chip]', root).onclick = openMeMenu;
   const codes = $('[data-codes]', root);
   if (codes) codes.onclick = openCodes;
 }
@@ -216,7 +300,7 @@ function openCodes() {
     if (!a && !ad) { m.close(); return; }
     try {
       await api.changeCodes(app.code, a, ad);
-      if (ad) { app.code = ad; if (stored()) store({ code: ad, role: 'admin' }); }
+      if (ad) { app.code = ad; saveSession(); }
       toast(t('codes.done'));
       m.close();
     } catch (e) { app.fail(e); }
