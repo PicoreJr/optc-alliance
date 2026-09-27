@@ -5,7 +5,8 @@ import { api, ApiError } from './api.js';
 import { DATA, loadCore, loadDetails, loadShips } from './data.js';
 import { esc, $, $$, toast, openModal } from './ui.js';
 import { renderChars, refreshChars } from './views/chars.js';
-import { renderShips } from './views/ships.js';
+import { renderShips, teamHref } from './views/ships.js';
+import { renderTeamPage } from './views/teams.js';
 import { renderPvp } from './views/pvp.js';
 import { renderKizuna } from './views/kizuna.js';
 import { renderMode } from './views/modes.js';
@@ -159,7 +160,12 @@ function route() {
   const [page, arg, arg2] = hash.split('/').map((x) => decodeURIComponent(x || ''));
   // anciens liens « #/teams » -> onglet PvP
   if (page === 'teams') { location.replace('#/pvp'); return; }
-  const tab = page === 'member' ? 'alliance' : page;
+  let tab = page === 'member' ? 'alliance' : page;
+  // lien partagé vers une équipe : on allume l'onglet de son mode
+  if (page === 'team') {
+    const tm = app.teams.find((x) => x.id === arg);
+    tab = tm ? teamHref(tm).split('/')[1] : '';
+  }
   $$('[data-tab]').forEach((a) => a.classList.toggle('on', a.dataset.tab === tab));
   const on = $('.tabs a.on');
   if (on) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -168,6 +174,7 @@ function route() {
   else if (page === 'kizuna') renderKizuna(main, app, arg, arg2);
   else if (MODE_TABS.includes(page)) renderMode(main, app, page);
   else if (page === 'ships') renderShips(main, app);
+  else if (page === 'team') renderTeamPage(main, app, arg);
   else if (page === 'alliance') renderAlliance(main, app);
   else if (page === 'member') renderMember(main, app, arg);
   else renderChars(main, app);

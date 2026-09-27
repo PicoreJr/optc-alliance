@@ -1,7 +1,7 @@
 // Outils d'interface : échappement, modales, notifications, vignettes,
 // et le navigateur de personnages réutilisé partout (table, box, équipes).
 import { t, fmtDate } from './i18n.js';
-import { DATA, TYPES, CLASSES, RARITIES, thumbUrl, THUMB_STAGES, NOIMAGE, loadDetails, abilityText,
+import { DATA, TYPES, CLASSES, RARITIES, SUGO_GROUPS, thumbUrl, THUMB_STAGES, NOIMAGE, loadDetails, abilityText,
   SHIPS, SHIP_STAGES, SHIP_BIG_STAGES, shipThumbUrl, shipBigUrl, shipIconUrl } from './data.js';
 
 // ---------- bases ----------
@@ -144,6 +144,14 @@ export function confirmBox(message, { danger = false } = {}) {
 
 // ---------- navigateur de personnages ----------
 const PAGE = 120;
+const BROWSER_DEFAULTS = {
+  q: '', types: [], classes: [], rarity: '', region: '', owner: '', notOwner: '',
+  ability: '', sort: 'dateDesc', view: 'grid', more: false, own: '', since: '', group: '',
+};
+const freshState = (o) => ({ ...o, types: [...o.types], classes: [...o.classes] });
+// Rubrique de la Collection d'un perso (les non-légendes vont dans « autres »)
+const groupOf = (u) => u.sugo || 'other';
+const groupIndex = (u) => (u.sugo ? SUGO_GROUPS.indexOf(u.sugo) : SUGO_GROUPS.length);
 
 export class UnitBrowser {
   /**
@@ -155,13 +163,13 @@ export class UnitBrowser {
    * opts.baseFilter(unit)    filtre imposé (ex. seulement la box d'un membre)
    * opts.actions             HTML de boutons en plus dans la barre
    * opts.state               état de filtre initial / partagé
+   * opts.defaults            valeurs par défaut (aussi pour « Réinitialiser »)
+   * opts.collection          rubriques de la Collection du jeu (tri + filtre + en-têtes)
    */
   constructor(opts = {}) {
     this.o = opts;
-    this.s = Object.assign({
-      q: '', types: [], classes: [], rarity: '', region: '', owner: '', notOwner: '',
-      ability: '', sort: 'dateDesc', view: 'grid', more: false, own: '', since: '',
-    }, opts.state || {});
+    this.defaults = { ...BROWSER_DEFAULTS, ...(opts.defaults || {}) };
+    this.s = Object.assign(freshState(this.defaults), opts.state || {});
     this.results = [];
     this.shown = 0;
     this.root = el('<div class="ubrowser"></div>');
@@ -186,6 +194,9 @@ export class UnitBrowser {
           <input type="search" class="input grow" data-f="q" placeholder="${esc(t('f.search'))}" value="${esc(s.q)}" autocomplete="off">
           ${this.o.ownBox ? `<select class="input" data-f="own" aria-label="${esc(t('f.own'))}">
             ${opt('', t('f.ownAll'), s.own)}${opt('owned', t('f.owned'), s.own)}${opt('missing', t('f.missing'), s.own)}
+          </select>` : ''}
+          ${this.o.collection ? `<select class="input" data-f="group" aria-label="${esc(t('f.group'))}">
+            ${opt('', t('f.allGroups'), s.group)}${[...SUGO_GROUPS, 'other'].map((g) => opt(g, t('grp.' + g), s.group)).join('')}
           </select>` : ''}
           <button class="btn ghost small" data-act="more">${esc(s.more ? t('f.less') : t('f.more'))}</button>
           ${this.o.allowList ? `<div class="seg">
@@ -214,7 +225,8 @@ export class UnitBrowser {
               ${['', '7', '30', '90', '180', '365'].map((k) => opt(k, t('since.' + (k || 'all')), s.since)).join('')}
             </select>
             <select class="input" data-f="sort" aria-label="${esc(t('f.sort'))}">
-              ${['dateDesc', 'dateAsc', 'idDesc', 'idAsc', 'atk', 'hp', 'rcv', 'name'].map((k) => opt(k, t('sort.' + k), s.sort)).join('')}
+              ${[...(this.o.collection ? ['collection'] : []), 'dateDesc', 'dateAsc', 'idDesc', 'idAsc', 'atk', 'hp', 'rcv', 'name']
+                .map((k) => opt(k, t('sort.' + k), s.sort)).join('')}
             </select>
           </div>
           <div class="row">
@@ -258,7 +270,7 @@ export class UnitBrowser {
       e.target.textContent = this.s.more ? t('f.less') : t('f.more');
     };
     $('[data-act="reset"]', this.root).onclick = () => {
-      Object.assign(this.s, { q: '', types: [], classes: [], rarity: '', region: '', owner: '', notOwner: '', ability: '', sort: 'dateDesc', own: '', since: '' });
+      Object.assign(this.s, freshState(this.defaults), { view: this.s.view, more: this.s.more });
       this.renderToolbar(); this.refresh();
     };
     if (this.o.onToolbar) this.o.onToolbar(this.root);
@@ -287,6 +299,7 @@ export class UnitBrowser {
       if (base && !base(u)) return false;
       if (ownBox && s.own === 'owned' && !ownBox[u.id]) return false;
       if (ownBox && s.own === 'missing' && ownBox[u.id]) return false;
+      if (s.group && groupOf(u) !== s.group) return false;
       if (qId !== null && u.id !== qId && !String(u.id).startsWith(q)) return false;
       if (qTokens && !qTokens.every((tk) => u.nameLc.includes(tk))) return false;
       if (types.size && !(u.types.some((ty) => types.has(ty)) || (types.has('DUAL') && u.dual))) return false;
@@ -313,6 +326,8 @@ export class UnitBrowser {
       hp: (a, b) => b.hp - a.hp,
       rcv: (a, b) => b.rcv - a.rcv,
       name: (a, b) => a.name.localeCompare(b.name),
+      // comme la Collection du jeu : par rubrique, puis des plus anciens aux plus récents
+      collection: (a, b) => groupIndex(a) - groupIndex(b) || (a.sugo ? a.sugoRank - b.sugoRank || a.id - b.id : byDate(a, b)),
     }[s.sort] || byDate;
     list.sort(by);
     // un ID tapé exactement passe en premier
@@ -326,6 +341,9 @@ export class UnitBrowser {
   refresh() {
     this.results = this.filter();
     this.shown = 0;
+    this.grouped = !!this.o.collection && this.s.sort === 'collection';
+    this.lastGroup = null;
+    if (this.grouped) this.groupStats = this.collectionStats();
     const res = $('.results', this.root);
     res.className = 'results ' + (this.s.view === 'list' && this.o.allowList ? 'list' : 'grid');
     res.innerHTML = this.s.view === 'list' && this.o.allowList ? `<table class="utable"><thead><tr>
@@ -363,23 +381,54 @@ export class UnitBrowser {
   renderMore() {
     const next = this.results.slice(this.shown, this.shown + PAGE);
     if (!next.length) return;
-    const target = this.s.view === 'list' && this.o.allowList ? $('tbody', this.root) : $('.results', this.root);
-    target.insertAdjacentHTML('beforeend', next.map((u) => this.itemHtml(u)).join(''));
+    const list = this.s.view === 'list' && this.o.allowList;
+    const target = list ? $('tbody', this.root) : $('.results', this.root);
+    target.insertAdjacentHTML('beforeend', next.map((u) => {
+      if (!this.grouped || groupOf(u) === this.lastGroup) return this.itemHtml(u);
+      this.lastGroup = groupOf(u);
+      return this.groupHeader(this.lastGroup, list) + this.itemHtml(u);
+    }).join(''));
     this.shown += next.length;
+  }
+
+  // Possédés / total de chaque rubrique (toutes les légendes, comme le compteur du jeu)
+  collectionStats() {
+    const own = this.o.ownBox ? this.o.ownBox() : {};
+    const st = {};
+    for (const u of DATA.units) {
+      if (!u.legend && !own[u.id]) continue;
+      const g = st[groupOf(u)] || (st[groupOf(u)] = { owned: 0, total: 0 });
+      g.total++;
+      if (own[u.id]) g.owned++;
+    }
+    return st;
+  }
+
+  groupHeader(g, list) {
+    const st = this.groupStats[g] || { owned: 0, total: 0 };
+    const inner = `<span>${esc(t('grp.' + g))}</span><span class="ugroup-n">${this.groupCount(g)}</span>`;
+    return list ? `<tr class="ugroup" data-group="${g}"><td colspan="12"><div class="ugroup-in">${inner}</div></td></tr>`
+      : `<div class="ugroup" data-group="${g}">${inner}</div>`;
+  }
+  groupCount(g) {
+    const st = this.groupStats[g] || { owned: 0, total: 0 };
+    return g === 'other' ? String(st.owned) : `${st.owned}/${st.total}`;
   }
 
   observe() {
     if (this.observer) this.observer.disconnect();
     const sentinel = $('.sentinel', this.root);
-    this.observer = new IntersectionObserver((entries) => {
-      if (entries.some((e) => e.isIntersecting) && this.shown < this.results.length) {
+    // On continue tant que le bas de la liste reste visible : l'observateur ne se redéclenche
+    // que si le bas sort puis revient à l'écran, ce qui n'arrive pas sur un grand écran
+    const fill = () => {
+      if (!sentinel.isConnected || this.shown >= this.results.length) return;
+      if (sentinel.getBoundingClientRect().top < window.innerHeight + 600) {
         this.renderMore();
-        // si l'écran est très grand, on continue
-        requestAnimationFrame(() => {
-          const r = sentinel.getBoundingClientRect();
-          if (r.top < window.innerHeight + 400 && this.shown < this.results.length) this.renderMore();
-        });
+        requestAnimationFrame(fill);
       }
+    };
+    this.observer = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) fill();
     }, { rootMargin: '600px 0px' });
     this.observer.observe(sentinel);
   }
@@ -391,6 +440,12 @@ export class UnitBrowser {
     if (!node || !u) return;
     const fresh = el(this.s.view === 'list' && this.o.allowList ? `<table><tbody>${this.itemHtml(u)}</tbody></table>` : this.itemHtml(u));
     node.replaceWith(fresh.tagName === 'TABLE' ? fresh.querySelector('tr') : fresh);
+    // compteur de la rubrique (ex. une légende ajoutée à la box)
+    if (this.grouped) {
+      this.groupStats = this.collectionStats();
+      const n = $(`[data-group="${groupOf(u)}"] .ugroup-n`, this.root);
+      if (n) n.textContent = this.groupCount(groupOf(u));
+    }
   }
 
   destroy() { if (this.observer) this.observer.disconnect(); }

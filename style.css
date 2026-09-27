@@ -608,3 +608,22 @@ body::after {
 .ship-pick-btn .thumb { width: 44px; height: 44px; flex: none; }
 .ship-pick-btn .plus { width: 44px; height: 44px; flex: none; display: grid; place-items: center; font-size: 1.4rem; background: var(--surface-2); border-radius: var(--radius); }
 .ship-pick-btn .grow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============ Box : rubriques de la Collection ============ */
+.results.grid .ugroup { grid-column: 1 / -1; }
+.ugroup, .utable tr.ugroup .ugroup-in {
+  display: flex; justify-content: space-between; align-items: baseline; gap: .6rem;
+  padding: .35rem .7rem; background: var(--ink); color: var(--accent-text);
+  font-family: var(--brush); font-size: 1rem; letter-spacing: .03em; border-radius: var(--radius);
+}
+.results.grid .ugroup:not(:first-child) { margin-top: .7rem; }
+.ugroup-n { font-family: system-ui, sans-serif; font-size: .8rem; font-weight: 700; opacity: .85; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.utable tr.ugroup { cursor: default; }
+.utable tr.ugroup td, .utable tr.ugroup:hover td { background: none; padding: .7rem 0 .3rem; border: 0; }
+
+/* ============ Partage d'équipe ============ */
+.share-preview { display: grid; place-items: center; gap: .5rem; min-height: 200px; background: var(--surface-2); border-radius: var(--radius); padding: .6rem; }
+.share-preview img { display: block; max-width: 100%; max-height: 52vh; height: auto; border-radius: 2px; box-shadow: var(--shadow); }
+.share-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: .8rem 0 .2rem; }
+.share-actions .btn { flex: 1 1 auto; }
+.team-list.single { grid-template-columns: minmax(0, 520px); }

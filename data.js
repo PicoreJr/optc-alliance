@@ -86,6 +86,19 @@ export const TYPES = ['STR', 'DEX', 'QCK', 'PSY', 'INT'];
 export const CLASSES = ['Fighter', 'Slasher', 'Striker', 'Shooter', 'Free Spirit', 'Cerebral', 'Powerhouse', 'Driven', 'Evolver', 'Booster'];
 export const RARITIES = ['6+', '6', '5+', '5', '4+', '4', '3', '2', '1'];
 
+// Rubriques de la « Collection » du jeu (légendes Sugo-Rare), dans l'ordre du jeu.
+// Déduites des drapeaux d'OPTC-DB : un nouveau perso se range tout seul.
+export const SUGO_GROUPS = ['super', 'anni', 'pf', 'tm', 'kizuna', 'bazaar', 'sugo'];
+function sugoGroup(f) {
+  if (f.superlrr) return 'super';   // exclusif au Super Sugo-Fest
+  if (f.annilrr) return 'anni';     // anniversaire
+  if (f.pflrr) return 'pf';         // Sugo-Fest de la Fête des pirates
+  if (f.tmlrr) return 'tm';         // Sugo-Fest des trésors
+  if (f.kclrr) return 'kizuna';     // Sugo-Fest de l'Alliance pirate (Kizuna)
+  if (f.shop) return 'bazaar';      // Bazar
+  return 'sugo';
+}
+
 // Dates d'ajout { id: 'AAAA-MM-JJ' }
 let ADDED = {};
 async function loadDates() {
@@ -105,6 +118,17 @@ function buildUnits(w) {
   const evos = w.evolutions || {};
   const starsOf = (id) => { const x = raw[id] || raw[String(id)]; return x && x.stars != null ? String(x.stars) : ''; };
   const isRR = (f) => !!f && Object.keys(f).some((k) => /rr/.test(k));
+  // 1re forme de chaque perso : les vieilles légendes ont leur forme 6+★ sous un numéro récent,
+  // on les range donc d'après leur forme d'origine (comme en jeu : des plus anciennes aux plus récentes)
+  const prev = {};
+  for (const from in evos) {
+    for (const to of [].concat(evos[from].evolution || [])) if (!prev[to]) prev[to] = Number(from);
+  }
+  const firstForm = (id) => {
+    let r = id;
+    for (let i = 0; prev[r] && i < 20; i++) r = prev[r];
+    return r;
+  };
   // Les persos Dual / VS ont des sous-fiches « 1983-1 », « 1983-2 » qui portent leurs types
   const subTypes = {};
   for (const key in raw) {
@@ -122,6 +146,10 @@ function buildUnits(w) {
     const classes = [...new Set(flat(u.class))];
     const f = flags[id] || {};
     const stars = u.stars == null ? '' : String(u.stars);
+    // Légende = perso 6★/6+★ des sugos (rare recruit) ou du Bazar, sous sa forme finale
+    // (un 6★ qui évolue en 6+★ n'est pas compté deux fois)
+    const legend = stars.startsWith('6') && (isRR(f) || !!f.shop)
+      && ![].concat((evos[id] || {}).evolution || []).some((to) => starsOf(to).startsWith('6'));
     units.push({
       id,
       name: u.name,
@@ -131,10 +159,10 @@ function buildUnits(w) {
       classes,
       stars,
       starsNum: parseFloat(stars) || 0,
-      // Légende = perso 6★/6+★ des sugos (rare recruit), sous sa forme finale
-      // (un 6★ qui évolue en 6+★ n'est pas compté deux fois)
-      legend: stars.startsWith('6') && isRR(f)
-        && ![].concat((evos[id] || {}).evolution || []).some((to) => starsOf(to).startsWith('6')),
+      legend,
+      // rubrique de la Collection et rang d'arrivée (légendes seulement)
+      sugo: legend ? sugoGroup(f) : null,
+      sugoRank: legend ? firstForm(id) : 0,
       cost: u.cost,
       combo: u.combo,
       sockets: u.sockets || 0,
