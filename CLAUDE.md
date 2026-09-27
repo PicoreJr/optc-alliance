@@ -77,6 +77,8 @@ messages de commit en français.
 
 ## Modèle d'un membre (`get_all` / `save_member`)
 `{ id, pseudo, game_id, level, bounty, box, updated_at }` où `box` (jsonb libre) vaut `{ <id perso>: { lv, lb, … } }`
+(`lb` = niveau de Limit Break : 1 à 5 ou `'rainbow'` ; lire avec `lbLevel()` de `views/box.js`, qui convertit les
+anciennes valeurs `'llb'` → 1 et ignore `'lb'` / `'lbx'`)
 plus la clé réservée `_card: { u: <id perso> }` = thème de la carte de membre (illustration d'un perso du Super
 Sugo-Fest, drapeau `superlrr`). Rangé dans la box pour ne rien changer côté base : pour compter ou parcourir les
 persos, ne garder que les clés numériques (voir `boxCount`).

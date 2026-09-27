@@ -4,9 +4,24 @@ import { SOCKETS, LB_LEVELS } from '../config.js';
 import { DATA, loadDetails, getDetails } from '../data.js';
 import { esc, $, $$, openModal, thumb, typeBadges, confirmBox } from '../ui.js';
 
-const SHORT = { lb: 'LB', lbx: 'LB+', llb: 'LLB', rainbow: 'RB' };
-export function lbLabel(lb) { return t('b.lb.' + lb); }
-export function lbShort(entry) { return entry && SHORT[entry.lb] ? SHORT[entry.lb] : ''; }
+// Niveau de Limit Break d'un perso de la box : 1 à 5, 'rainbow', ou 0 (non renseigné).
+// Anciennes valeurs : 'llb' → 1, 'rainbow' → Rainbow, 'lb' / 'lbx' → non renseigné.
+export function lbLevel(entry) {
+  const v = entry && entry.lb;
+  if (v === 'rainbow') return 'rainbow';
+  if (v === 'llb') return 1;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : 0;
+}
+export function lbLabel(entry) {
+  const l = lbLevel(entry);
+  return l === 'rainbow' ? t('b.lbRainbow') : l ? t('b.lbN', { n: l }) : '';
+}
+// Petit badge sur la vignette (« LB3 », « RB » avec bordure arc-en-ciel)
+export function lbBadge(entry) {
+  const l = lbLevel(entry);
+  return l === 'rainbow' ? { text: 'RB', cls: 'rb' } : l ? { text: `LB${l}`, cls: 'lb' } : '';
+}
 
 // entry = { lv, lb, pot: [niveaux], sk: [{t, l}], sup, cc: {h, a, r} }
 export function openBoxEntry(member, unitId, { onChange, onRemove }) {
@@ -27,7 +42,8 @@ export function openBoxEntry(member, unitId, { onChange, onRemove }) {
     const nSock = u.sockets || 0;
     const sk = e.sk || [];
     const cc = e.cc || {};
-    const maxLv = e.lb === 'llb' || e.lb === 'rainbow' ? 150 : (u.maxLevel || 99);
+    const lb = lbLevel(e);
+    const maxLv = lb ? 150 : (u.maxLevel || 99);
     const lvOpts = (cur, max, zeroLabel) => `<option value="">${esc(zeroLabel)}</option>` +
       Array.from({ length: max }, (_, i) => `<option value="${i + 1}" ${Number(cur) === i + 1 ? 'selected' : ''}>${i + 1}</option>`).join('');
 
@@ -35,14 +51,17 @@ export function openBoxEntry(member, unitId, { onChange, onRemove }) {
       <div class="entry-head">${thumb(u.id, 'big')}
         <div><div class="badges">${typeBadges(u)} <span class="badge">${esc(u.stars)}★</span></div>
         <p class="muted small">${esc(u.classes.join(' · '))}</p></div></div>
+      <div class="lb-row">
+        <p class="field-label">${esc(t('b.lb'))}</p>
+        <div class="lb-pick" role="group" aria-label="${esc(t('b.lb'))}">
+          <button type="button" data-lb="0" class="${!lb ? 'on' : ''}">${esc(t('b.lbNone'))}</button>
+          ${LB_LEVELS.map((l) => `<button type="button" data-lb="${l}" class="${l === 'rainbow' ? 'rb' : ''} ${lb === l ? 'on' : ''}">${esc(l === 'rainbow' ? t('b.lbRainbow') : String(l))}</button>`).join('')}
+        </div>
+        <p class="muted small">${esc(t('b.lbHint'))}</p>
+      </div>
       <div class="form-grid">
         <label>${esc(t('b.level'))}
           <input class="input" type="number" inputmode="numeric" min="1" max="${maxLv}" data-k="lv" value="${e.lv ?? ''}" placeholder="1 – ${maxLv}">
-        </label>
-        <label>${esc(t('b.lb'))}
-          <select class="input" data-k="lb">
-            ${LB_LEVELS.map((l) => `<option value="${l}" ${(e.lb || 'none') === l ? 'selected' : ''}>${esc(lbLabel(l))}</option>`).join('')}
-          </select>
         </label>
         ${hasSupport ? `<label>${esc(t('b.support'))}
           <select class="input" data-k="sup">${lvOpts(e.sup, 5, t('b.notUnlocked'))}</select></label>` : ''}
@@ -78,12 +97,16 @@ export function openBoxEntry(member, unitId, { onChange, onRemove }) {
       const k = inp.dataset.k;
       let v = inp.value;
       if (k === 'lv' || k === 'sup') v = v === '' ? undefined : clamp(parseInt(v, 10), 1, k === 'lv' ? 150 : 5);
-      if (k === 'lb' && v === 'none') v = undefined;
       entry()[k] = v;
       if (k === 'lv' && v !== undefined) inp.value = v;
       changed();
-      if (k === 'lb') draw();
     }));
+    $$('[data-lb]', m.body).forEach((b) => b.onclick = () => {
+      const v = b.dataset.lb;
+      entry().lb = v === 'rainbow' ? 'rainbow' : Number(v) || undefined;
+      changed();
+      draw();
+    });
     $$('[data-pot]', m.body).forEach((inp) => inp.addEventListener('change', () => {
       const e = entry();
       e.pot = e.pot || [];

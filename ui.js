@@ -380,20 +380,24 @@ export class UnitBrowser {
 
   itemHtml(u) {
     const sel = this.o.isSelected && this.o.isSelected(u);
-    const badge = this.o.badge ? this.o.badge(u) : '';
+    // badge : texte, ou { text, cls } (ex. LB / Rainbow dans la box)
+    const b = this.o.badge ? this.o.badge(u) : '';
+    const badge = b && typeof b === 'object' ? b.text : b;
+    const bcls = b && typeof b === 'object' ? b.cls || '' : '';
     if (this.s.view === 'list' && this.o.allowList) {
       return `<tr data-uid="${u.id}" class="${sel ? 'sel' : ''}">
         <td>${thumb(u.id, 'sm')}</td><td class="muted">${u.id}</td>
-        <td class="name">${esc(u.name)}${badge ? ` <span class="ubadge">${esc(badge)}</span>` : ''}</td>
+        <td class="name">${esc(u.name)}${badge ? ` <span class="ubadge ${bcls}">${esc(badge)}</span>` : ''}</td>
         <td>${typeBadges(u)}</td><td class="hide-sm small">${esc(u.classes.join(', '))}</td>
         <td>${esc(u.stars)}</td><td class="num hide-sm">${u.cost ?? ''}</td>
         <td class="num">${u.hp}</td><td class="num">${u.atk}</td><td class="num">${u.rcv}</td>
         <td class="num hide-sm">${u.cd ? `${u.cd[0]}→${u.cd[1]}` : ''}</td>
         <td class="hide-sm small muted">${u.added ? esc(fmtDate(u.added)) : esc(t('u.new'))}</td></tr>`;
     }
-    const dim = this.o.dimUnselected && !sel;
-    return `<button class="uitem ${sel ? 'sel' : ''} ${dim ? 'dim' : ''}" data-uid="${u.id}" title="${esc(u.name)}">
-      ${thumb(u.id)}<span class="uid">${u.id}</span>${badge ? `<span class="ubadge">${esc(badge)}</span>` : ''}
+    // box : possédé = en couleur, sinon grisé (pas besoin de coche)
+    const state = this.o.dimUnselected ? (sel ? 'own' : 'dim') : (sel ? 'sel' : '');
+    return `<button class="uitem ${state} ${bcls === 'rb' ? 'rainbow' : ''}" data-uid="${u.id}" title="${esc(u.name)}">
+      ${thumb(u.id)}<span class="uid">${u.id}</span>${badge ? `<span class="ubadge ${bcls}">${esc(badge)}</span>` : ''}
     </button>`;
   }
 
