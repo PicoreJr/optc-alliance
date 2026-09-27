@@ -183,6 +183,9 @@ export function renderMember(main, app, id) {
   // 1er clic = sélectionner, clic suivant = détails (LB/LLB, potentiels…)
   boxBrowser = new UnitBrowser({
     hideOwner: true,
+    // rangée comme la Collection du jeu (Super Sugo-Fest, Anniversaire, Kizuna…)
+    collection: true,
+    defaults: { sort: 'collection' },
     baseFilter: (u) => u.legend || !!mb.box[u.id],
     ownBox: () => mb.box,
     isSelected: (u) => !!mb.box[u.id],

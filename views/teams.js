@@ -5,7 +5,8 @@ import { EVENTS, FORMATS } from '../config.js';
 import { DATA, SHIPS, loadShips, shipOf } from '../data.js';
 import { esc, $, $$, openModal, confirmBox, toast, thumb, shipThumb, pickUnit, debounce } from '../ui.js';
 import { openUnit } from './chars.js';
-import { openShip, pickShip } from './ships.js';
+import { openShip, pickShip, teamHref } from './ships.js';
+import { openShare } from './share.js';
 
 export const eventById = (id) => EVENTS.find((e) => e.id === id) || EVENTS[EVENTS.length - 1];
 export const formatOf = (eventId) => FORMATS[eventById(eventId).format] || FORMATS.standard;
@@ -108,20 +109,7 @@ export function renderTeamList(root, app, opts) {
       : `<p class="empty">${esc(opts.emptyText || t('t.none'))}</p>`;
     $$('[data-team]', box).forEach((card) => {
       const tm = app.teams.find((x) => x.id === card.dataset.team);
-      $$('[data-uid]', card).forEach((n) => n.onclick = () => openUnit(Number(n.dataset.uid), app));
-      $$('[data-ship-id]', card).forEach((n) => n.onclick = () => openShip(Number(n.dataset.shipId), app));
-      const on = (sel, fn) => { const b = $(sel, card); if (b) b.onclick = fn; };
-      on('[data-edit]', () => openEditor(app, tm, opts, redraw));
-      on('[data-dup]', () => openEditor(app, { ...tm, id: null, title: tm.title ? tm.title + ' (2)' : '' }, opts, redraw));
-      on('[data-del]', async () => {
-        if (!await confirmBox(t('t.confirmDelete'), { danger: true })) return;
-        try {
-          await app.api('deleteTeam', tm.id);
-          app.teams = app.teams.filter((x) => x !== tm);
-          toast(t('t.deleted'));
-          if (opts.onChange) opts.onChange(); else drawList();
-        } catch (e) { app.fail(e); }
-      });
+      bindCard(card, tm, app, opts, redraw, () => (opts.onChange ? opts.onChange() : drawList()));
     });
   };
 
@@ -139,6 +127,54 @@ export function renderTeamList(root, app, opts) {
   drawList();
 }
 
+// Boutons d'une carte d'équipe (persos, bateau, partager, modifier, dupliquer, supprimer)
+function bindCard(card, tm, app, opts, redraw, afterDelete) {
+  $$('[data-uid]', card).forEach((n) => n.onclick = () => openUnit(Number(n.dataset.uid), app));
+  $$('[data-ship-id]', card).forEach((n) => n.onclick = () => openShip(Number(n.dataset.shipId), app));
+  const on = (sel, fn) => { const b = $(sel, card); if (b) b.onclick = fn; };
+  on('[data-share]', () => openShare(shareInfo(tm)));
+  on('[data-edit]', () => openEditor(app, tm, opts, redraw));
+  on('[data-dup]', () => openEditor(app, { ...tm, id: null, title: tm.title ? tm.title + ' (2)' : '' }, opts, redraw));
+  on('[data-del]', async () => {
+    if (!await confirmBox(t('t.confirmDelete'), { danger: true })) return;
+    try {
+      await app.api('deleteTeam', tm.id);
+      app.teams = app.teams.filter((x) => x !== tm);
+      toast(t('t.deleted'));
+      afterDelete();
+    } catch (e) { app.fail(e); }
+  });
+}
+
+// Ce qu'il faut pour dessiner l'image de l'équipe (views/share.js)
+function shareInfo(tm) {
+  const fmt = formatOf(tm.event_type);
+  const lu = normalizeLineup(tm);
+  return {
+    tm, lu, fmt, ev: eventById(tm.event_type),
+    order: slotOrder(fmt),
+    supports: fmt.slots.map((_, i) => hasSupport(fmt, i)),
+    groupTitles: lu.groups.map((_, gi) => groupTitle(fmt, gi, lu.groups.length)),
+  };
+}
+
+// ---------- page d'une équipe (lien partagé #/team/<id>) ----------
+export function renderTeamPage(main, app, id) {
+  const tm = app.teams.find((x) => x.id === id && x.event_type !== 'kizuna_ev');
+  if (!tm) {
+    main.innerHTML = `<section class="page"><p class="empty">${esc(t('share.notFound'))}</p></section>`;
+    return;
+  }
+  const href = teamHref(tm);
+  const kz = tm.event_type === 'kizuna' && (tm.units || {}).kz ? app.teams.find((x) => x.id === tm.units.kz) : null;
+  main.innerHTML = `<section class="page">
+    <a class="back" href="${href}">← ${esc(kz ? kz.title || t('ev.kizuna') : t('ev.' + tm.event_type))}</a>
+    <div class="team-list single">${teamCard(tm, app, true)}</div>
+  </section>`;
+  bindCard($('[data-team]', main), tm, app, { events: [tm.event_type] },
+    () => renderTeamPage(main, app, id), () => { location.hash = href; });
+}
+
 function slotTile(id, label, cls = '', crown = false) {
   const u = id ? DATA.byId.get(id) : null;
   return `<div class="slot ${cls}">
@@ -153,13 +189,19 @@ function groupTitle(fmt, gi, count) {
   return count > 1 ? t('t.group', { n: gi + 1 }) : '';
 }
 
-// Emplacements groupés : principaux / secondaires pour le PvP
-function slotsHtml(fmt, g, gi, lu, render) {
+// Ordre d'affichage des emplacements : principaux / secondaires (PvP)
+// comme en jeu : 2 colonnes de 3, ami capitaine (ou capitaine coop) en haut à gauche, capitaine en haut à droite
+function slotOrder(fmt) {
   const idx = fmt.slots.map((_, i) => i);
-  // comme en jeu : 2 colonnes de 3, ami capitaine (ou capitaine coop) en haut à gauche, capitaine en haut à droite
   const first = (i) => (['friend', 'coop'].includes(fmt.slots[i]) ? 0 : 1);
-  const main = idx.filter((i) => fmt.slots[i] !== 'sub').sort((a, b) => first(a) - first(b) || a - b);
-  const sub = idx.filter((i) => fmt.slots[i] === 'sub');
+  return {
+    main: idx.filter((i) => fmt.slots[i] !== 'sub').sort((a, b) => first(a) - first(b) || a - b),
+    sub: idx.filter((i) => fmt.slots[i] === 'sub'),
+  };
+}
+
+function slotsHtml(fmt, g, gi, lu, render) {
+  const { main, sub } = slotOrder(fmt);
   const cols = (list) => list.map((i) => render(g.slots[i], i, `${gi}.${i}`)).join('');
   if (!sub.length) return `<div class="lineup ${main.length === 6 ? 'grid23' : `n${main.length}`}">${cols(main)}</div>`;
   return `<div class="lineup8">
@@ -193,7 +235,8 @@ function teamCard(tm, app, showEvent) {
       ${feas.length ? feas.map((m) => `<a href="#/member/${esc(m.id)}">${esc(m.pseudo)}</a>`).join(', ') : `<span class="muted">${esc(t('t.feasibleNone'))}</span>`}</p>` : ''}
     <footer>
       <span class="muted small">${tm.author ? esc(t('t.by', { name: tm.author })) + ' · ' : ''}${esc(fmtDate(tm.updated_at || tm.created_at))}</span>
-      <span class="row">
+      <span class="row wrap">
+        <button class="btn ghost small" data-share>${esc(t('share.btn'))}</button>
         <button class="btn ghost small" data-dup>${esc(t('t.duplicate'))}</button>
         <button class="btn ghost small" data-edit>${esc(t('t.editBtn'))}</button>
         <button class="btn ghost danger small" data-del>${esc(t('t.delete'))}</button>

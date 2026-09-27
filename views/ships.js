@@ -19,12 +19,12 @@ function usage(app) {
   return n;
 }
 // Onglet où se trouve une équipe
-function teamHref(tm) {
+export function teamHref(tm) {
   const u = tm.units || {};
   if (tm.event_type === 'kizuna') return u.kz ? `#/kizuna/${encodeURIComponent(u.kz)}/${u.stage || 'boss'}` : '#/kizuna';
   if (['tm', 'pka', 'coop', 'blitz'].includes(tm.event_type)) return `#/${tm.event_type}`;
   if (tm.event_type === 'other') return '#/blitz';
-  return '#/pvp';
+  return `#/pvp/${tm.event_type}/teams`;
 }
 
 // Un type ou une classe cité dans les effets du bateau (« boosts Slasher characters' ATK »…)

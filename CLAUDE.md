@@ -33,7 +33,7 @@ messages de commit en français.
 | Fichier | Rôle |
 |---|---|
 | `index.html` | Coquille de la page, charge `app.js` |
-| `app.js` | Connexion (code), barre d'onglets, routage par hash (`#/chars`, `#/ships`, `#/pvp/...`, `#/kizuna/<id>/<stage>`, `#/tm`, `#/member/<id>`…), état partagé `app` |
+| `app.js` | Connexion (code), barre d'onglets, routage par hash (`#/chars`, `#/ships`, `#/pvp/...`, `#/kizuna/<id>/<stage>`, `#/tm`, `#/member/<id>`, `#/team/<id>`…), état partagé `app` |
 | `config.js` | **Seul fichier de réglages** : nom, Supabase, URLs des sources, formats d'équipe (`FORMATS`), modes (`EVENTS`) |
 | `i18n.js` | Textes FR / EN (`t('clé', { var })`), `fmtDate`, `fmtNumber` |
 | `api.js` | Appels RPC Supabase (`login`, `get_all`, `save_team`, `save_member`…) |
@@ -41,13 +41,18 @@ messages de commit en français.
 | `ui.js` | `esc`, `$`/`$$`, modales, toasts, vignettes (`thumb`, `shipThumb`, `shipArt`), `richText`/`shipText`, `UnitBrowser` (navigateur de persos réutilisé partout), `pickUnit` |
 | `views/chars.js` | Onglet Personnages + fiche perso (`openUnit`) |
 | `views/ships.js` | Onglet Bateaux, fiche bateau (`openShip`), sélecteur (`pickShip`) |
-| `views/teams.js` | Liste + éditeur d'équipes, réutilisés par tous les modes (`renderTeamList`, `openEditor`, `normalizeLineup`) |
+| `views/teams.js` | Liste + éditeur d'équipes, réutilisés par tous les modes (`renderTeamList`, `openEditor`, `normalizeLineup`), page d'une équipe (`renderTeamPage`, lien partagé `#/team/<id>`) |
+| `views/share.js` | Partage d'une équipe : lien + image dessinée dans un `<canvas>` (copier / télécharger / envoyer) |
 | `views/pvp.js`, `kizuna.js`, `modes.js` | Onglets PvP (équipes + guides), Kizuna (événements → équipes Boss / Super Boss), TM / PKA / Coop / Blitz |
 | `views/alliance.js`, `box.js` | Membres, profils et box détaillée |
 | `style.css` | Styles de base puis thème « encre » (noir & blanc manga) qui surcharge en fin de fichier |
 
 ## Sources de données (mises à jour automatiques)
 - **Persos** : fork OPTC-DB `2Shankz/optc-db.github.io` (`common/data/*.js`, du JS `window.x = …` évalué par `data.js`).
+  Légende = 6★/6+★ sous forme finale, de sugo (drapeau `*rr`) ou du Bazar (`shop`). Leur rubrique de la
+  « Collection » du jeu (`u.sugo` : Super Sugo-Fest, Anniversaire, Fête des pirates, Trésors, Kizuna, Bazar, Sugo-Rare)
+  vient des drapeaux (`superlrr`, `annilrr`, `pflrr`, `tmlrr`, `kclrr`, `shop`) et leur ordre (`u.sugoRank`) de leur
+  1re forme : tout se met à jour seul quand OPTC-DB ajoute un perso. Tri « collection » du `UnitBrowser` (box des membres).
 - **Dates d'ajout** : `dates.json`, par `scripts/update-dates.mjs` (workflow quotidien `update-dates.yml`).
 - **Bateaux** : `ships.json`, converti depuis [blzn50/optc-ships](https://github.com/blzn50/optc-ships)
   (fichiers TypeScript `src/data/units.ts` + `details.ts`) par `scripts/update-ships.mjs` (Node ≥ 22.13 pour
