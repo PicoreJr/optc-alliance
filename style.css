@@ -654,3 +654,108 @@ body::after {
 .theme-info { flex: 1 1 200px; }
 .theme-info p { margin: 0 0 .4rem; }
 .card .theme-info .btn { margin-top: 0; }
+
+/* ============ Accueil « Quoi de neuf » ============ */
+.home-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.home-grid .card { margin: 0; }
+.home-wide { grid-column: 1 / -1; }
+@media (max-width: 760px) { .home-grid { grid-template-columns: minmax(0, 1fr); } }
+.home-units { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 6px; margin: .2rem 0 .7rem; }
+.home-teams { display: flex; flex-direction: column; gap: .5rem; }
+.home-team {
+  display: flex; flex-direction: column; gap: .3rem; padding: .55rem .7rem; color: var(--text); text-decoration: none;
+  border: 1.5px solid var(--border); border-left: 5px solid var(--ev); border-radius: var(--radius); background: var(--surface);
+  transition: transform .15s ease, border-color .15s ease;
+}
+.home-team:hover { border-color: var(--ink); border-left-color: var(--ev); transform: translateX(3px); }
+.home-team-head { display: flex; align-items: baseline; gap: .5rem; min-width: 0; }
+.home-team-head strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-team-units { display: flex; gap: 3px; }
+.home-team-units .thumb { width: 30px; height: 30px; }
+.home-ships { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: .2rem 0 .7rem; min-height: 60px; }
+.home-ships .spinner { grid-column: 1 / -1; margin: .5rem auto; }
+
+/* ============ Bannière du profil (thème de carte) ============ */
+.member-hero {
+  position: relative; overflow: hidden; min-height: 210px; margin: 0 0 1rem; display: flex; align-items: flex-end;
+  background: #0c0c0c; color: #f2efe8; border: 2px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.member-hero .card-art { object-position: 70% 32%; transform: scale(1.05); animation: hero-in 1.2s ease-out both; }
+.member-hero::before {
+  content: ''; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(90deg, rgba(8, 8, 8, .88) 0%, rgba(8, 8, 8, .45) 50%, rgba(8, 8, 8, 0) 100%),
+    linear-gradient(0deg, rgba(8, 8, 8, .7) 0%, transparent 55%);
+}
+.mh-body { position: relative; z-index: 2; padding: 1.2rem 1.4rem; }
+.mh-name { font-family: var(--brush); font-weight: 400; font-size: 2.2rem; line-height: 1.1; margin: 0 0 .5rem; text-shadow: 0 2px 6px #000; }
+.mh-stats { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .9rem; margin: 0; text-shadow: 0 1px 3px #000; }
+.mh-stats .badge { background: rgba(0, 0, 0, .45); color: #fff; border-color: rgba(255, 255, 255, .35); }
+.member-hero .mh-art { margin: .5rem 0 0; color: rgba(242, 239, 232, .7); }
+@keyframes hero-in { from { transform: scale(1.15); opacity: 0; } }
+@media (max-width: 520px) { .member-hero { min-height: 170px; } .mh-name { font-size: 1.7rem; } }
+
+/* ============ Images en fondu (+ case grise en attendant) ============ */
+img[data-k] { opacity: 0; transition: opacity .3s ease; }
+img[data-k].ok { opacity: 1; }
+/* garder aussi les effets de zoom existants */
+img.thumb { transition: opacity .3s ease, transform .12s; }
+img.card-art { transition: opacity .3s ease, transform .3s; }
+.uitem, .gunit { background: var(--surface-2); background-clip: content-box; border-radius: 9px; }
+.slot-img:not(.empty) { background: var(--surface-2); }
+
+/* ============ Fenêtres : ouverture et fermeture animées ============ */
+.modal-wrap { animation: wrap-in .18s ease-out; }
+.modal-wrap .modal { animation: modal-in .22s cubic-bezier(.2, .8, .2, 1); }
+.modal-wrap.closing { animation: wrap-out .16s ease-in forwards; pointer-events: none; }
+.modal-wrap.closing .modal { animation: modal-out .16s ease-in forwards; }
+@keyframes wrap-in { from { background: rgba(0, 0, 0, 0); } }
+@keyframes wrap-out { to { background: rgba(0, 0, 0, 0); } }
+@keyframes modal-in { from { opacity: 0; transform: translateY(14px) scale(.98); } }
+@keyframes modal-out { to { opacity: 0; transform: translateY(10px) scale(.98); } }
+@media (max-width: 600px) {
+  /* sur téléphone, la fenêtre monte depuis le bas */
+  .modal-wrap .modal { animation-name: sheet-in; animation-duration: .26s; }
+  .modal-wrap.closing .modal { animation-name: sheet-out; }
+  @keyframes sheet-in { from { transform: translateY(100%); } }
+  @keyframes sheet-out { to { transform: translateY(100%); } }
+}
+
+/* ============ Pages : apparition en fondu ============ */
+main.page-in > * { animation: page-in .25s ease-out; }
+@keyframes page-in { from { opacity: 0; transform: translateY(8px); } }
+
+/* ============ Coups de pinceau : titres et onglet actif se dessinent ============ */
+:root { --stroke-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 14' preserveAspectRatio='none'%3E%3Cpath d='M2 9 C 40 3, 90 5, 140 6 S 240 4, 298 7 L 296 11 C 230 12, 150 10, 90 11 S 20 12, 3 12 Z' fill='%23f2efe8'/%3E%3C/svg%3E"); }
+h1 { animation: brush .6s cubic-bezier(.3, .7, .2, 1) .08s both; }
+@keyframes brush { from { background-size: 0% .5rem; } to { background-size: 100% .5rem; } }
+.tabs a { position: relative; }
+.tabs a.on { box-shadow: none; }
+.tabs a.on::after {
+  content: ''; position: absolute; left: .45rem; right: .45rem; bottom: 1px; height: 6px;
+  background: var(--stroke-paper) no-repeat center / 100% 100%; transform-origin: left; animation: brush-x .4s cubic-bezier(.3, .7, .2, 1) both;
+}
+@keyframes brush-x { from { transform: scaleX(0); } }
+
+/* ============ Chargement : ☠ et trait d'encre qui tourne ============ */
+.spinner { position: relative; width: 58px; height: 58px; border: 0; border-radius: 50%; animation: none; }
+.spinner::before {
+  content: '\2620\FE0E'; position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 28px; line-height: 1; color: var(--ink); animation: skull 1.4s ease-in-out infinite;
+}
+.spinner::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--ink); border-right-color: var(--ink);
+  animation: spin .9s cubic-bezier(.5, .1, .5, .9) infinite;
+}
+@keyframes skull { 0%, 100% { transform: scale(1) rotate(-7deg); } 50% { transform: scale(1.12) rotate(7deg); } }
+
+/* ============ Cartes d'équipe : se soulèvent au survol ============ */
+.team-card { transition: transform .15s ease, box-shadow .15s ease; }
+@media (hover: hover) {
+  .team-card:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--ink); }
+}
+
+/* ============ Moins d'animations si le téléphone / l'ordi le demande ============ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

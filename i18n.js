@@ -440,6 +440,19 @@ const DICT = {
     'm.changeTheme': 'Changer de thème',
     'm.noTheme': 'Retirer le thème',
     'm.themeTitle': 'Thème de la carte de {name} (Super Sugo-Fest)',
+
+    // Accueil
+    'home.title': 'Quoi de neuf',
+    'home.hint': "Les nouveautés du jeu et de l'alliance.",
+    'home.newUnits': 'Nouveaux persos',
+    'home.since': 'ajoutés depuis le {date}',
+    'home.allUnits': 'Voir tous les persos',
+    'home.teams': 'Dernières équipes',
+    'home.noTeams': "Aucune équipe pour l'instant.",
+    'home.ships': 'Derniers bateaux',
+    'home.allShips': 'Voir tous les bateaux',
+    'home.members': 'Membres mis à jour récemment',
+    'home.allMembers': "Voir toute l'alliance",
   },
 
   en: {
@@ -880,6 +893,19 @@ const DICT = {
     'm.changeTheme': 'Change theme',
     'm.noTheme': 'Remove theme',
     'm.themeTitle': "{name}'s card theme (Super Sugo-Fest)",
+
+    // Home
+    'home.title': "What's new",
+    'home.hint': 'The latest from the game and the alliance.',
+    'home.newUnits': 'New characters',
+    'home.since': 'added since {date}',
+    'home.allUnits': 'See all characters',
+    'home.teams': 'Latest teams',
+    'home.noTeams': 'No team yet.',
+    'home.ships': 'Latest ships',
+    'home.allShips': 'See all ships',
+    'home.members': 'Recently updated members',
+    'home.allMembers': 'See the whole alliance',
   },
 };
 

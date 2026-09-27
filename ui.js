@@ -21,6 +21,12 @@ export function debounce(fn, ms) {
 }
 
 // ---------- vignettes ----------
+// Les images apparaissent en fondu une fois chargées (une seule fois par image :
+// si elle a déjà été vue, elle s'affiche directement, sans clignoter)
+const SEEN = new Set();
+window.__imgOk = (img) => { img.classList.add('ok'); if (img.dataset.k) SEEN.add(img.dataset.k); };
+export const fadeIn = (k) => `data-k="${k}" onload="__imgOk(this)"`;
+export const seen = (k) => (SEEN.has(k) ? 'ok' : '');
 // Essaie l'image Global puis Japon (CDN, puis GitHub), puis une image neutre.
 window.__thumbErr = (img) => {
   const next = Number(img.dataset.stage || 0) + 1;
@@ -32,7 +38,7 @@ export function thumb(id, extraClass = '') {
   const u = DATA.byId.get(Number(id));
   const type = u && !u.dual ? u.types[0] : 'DUAL';
   const name = u ? u.name : `#${id}`;
-  return `<img class="thumb t-${type} ${extraClass}" loading="lazy" decoding="async" data-id="${Number(id)}"
+  return `<img class="thumb t-${type} ${extraClass} ${seen('u' + id)}" ${fadeIn('u' + Number(id))} loading="lazy" decoding="async" data-id="${Number(id)}"
     src="${thumbUrl(Number(id))}" onerror="__thumbErr(this)" alt="${esc(name)}" title="${esc(name)}">`;
 }
 // Bateaux : icône, puis grande image (CDN, puis GitHub), puis une image neutre.
@@ -48,13 +54,13 @@ window.__shipErr = (img) => {
   } else { img.onerror = null; img.src = NOIMAGE; }
 };
 export function shipArt(id, name = '') {
-  return `<img class="ship-art" decoding="async" data-big data-ship="${Number(id)}" src="${shipBigUrl(Number(id))}"
+  return `<img class="ship-art ${seen('S' + id)}" ${fadeIn('S' + Number(id))} decoding="async" data-big data-ship="${Number(id)}" src="${shipBigUrl(Number(id))}"
     onerror="__shipErr(this)" alt="${esc(name)}">`;
 }
 export function shipThumb(id, extraClass = '', fallbackName = '') {
   const s = SHIPS.byId.get(Number(id));
   const name = s ? s.name : fallbackName || `#${id}`;
-  return `<img class="thumb ship-thumb ${extraClass}" loading="lazy" decoding="async" data-ship="${Number(id)}"
+  return `<img class="thumb ship-thumb ${extraClass} ${seen('s' + id)}" ${fadeIn('s' + Number(id))} loading="lazy" decoding="async" data-ship="${Number(id)}"
     src="${shipThumbUrl(Number(id))}" onerror="__shipErr(this)" alt="${esc(name)}" title="${esc(name)}">`;
 }
 // Illustration de fond (carte de membre) : CDN puis GitHub ; sans image, la carte redevient normale
@@ -65,7 +71,7 @@ window.__artErr = (img) => {
   else { const c = img.closest('.themed'); if (c) c.classList.remove('themed'); img.remove(); }
 };
 export function cardArt(id) {
-  return `<img class="card-art" alt="" decoding="async" data-art="${Number(id)}" src="${artUrl(Number(id))}" onerror="__artErr(this)">`;
+  return `<img class="card-art ${seen('a' + id)}" ${fadeIn('a' + Number(id))} alt="" decoding="async" data-art="${Number(id)}" src="${artUrl(Number(id))}" onerror="__artErr(this)">`;
 }
 export function typeBadges(u) {
   const dual = u.dual ? `<span class="badge t-DUAL">${esc(t('dual'))}</span>` : '';
@@ -125,7 +131,10 @@ export function openModal({ title = '', body = '', size = '', footer = '', onClo
     el: wrap, body: bodyEl,
     close() {
       if (closed) return; closed = true;
-      wrap.remove(); stack.splice(stack.indexOf(m), 1);
+      // petite animation de sortie, puis on retire la fenêtre
+      wrap.classList.add('closing');
+      setTimeout(() => wrap.remove(), 160);
+      stack.splice(stack.indexOf(m), 1);
       if (!stack.length) document.body.classList.remove('no-scroll');
       if (onClose) onClose();
     },
