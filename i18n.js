@@ -453,6 +453,22 @@ const DICT = {
     'home.allShips': 'Voir tous les bateaux',
     'home.members': 'Membres mis à jour récemment',
     'home.allMembers': "Voir toute l'alliance",
+
+    // Qui es-tu ?
+    'who.title': 'Qui es-tu ?',
+    'who.hint': "Choisis ton pseudo dans l'alliance. Tu pourras modifier ta fiche (profil, box, thème) ; celles des autres restent en lecture.",
+    'who.search': 'Chercher un pseudo…',
+    'who.visitor': 'Je ne suis pas dans la liste',
+    'who.visitorHint': "Tu peux tout consulter. Pour avoir ta fiche, demande à un admin de t'ajouter dans l'onglet Alliance.",
+    'who.visitorShort': 'Visiteur',
+    'who.hello': 'Salut {name} !',
+    'who.you': 'Toi',
+    'who.connectedAs': 'Connecté : {name}',
+    'who.myProfile': 'Ma fiche',
+    'who.switch': 'Changer de membre',
+    'm.readOnly': 'Fiche de {name} : seul {name} (ou un admin) peut la modifier.',
+    'm.adminEdit': 'Mode admin : tu modifies la fiche de {name}.',
+    'm.boxHintRO': 'Les légendes en couleur sont dans la box de {name}. Touche un perso pour voir sa fiche.',
   },
 
   en: {
@@ -906,6 +922,22 @@ const DICT = {
     'home.allShips': 'See all ships',
     'home.members': 'Recently updated members',
     'home.allMembers': 'See the whole alliance',
+
+    // Who are you?
+    'who.title': 'Who are you?',
+    'who.hint': "Pick your name in the alliance. You'll be able to edit your own profile (info, box, theme); other members' profiles are read-only.",
+    'who.search': 'Search a name…',
+    'who.visitor': "I'm not in the list",
+    'who.visitorHint': 'You can view everything. To get your own profile, ask an admin to add you in the Alliance tab.',
+    'who.visitorShort': 'Visitor',
+    'who.hello': 'Hi {name}!',
+    'who.you': 'You',
+    'who.connectedAs': 'Signed in: {name}',
+    'who.myProfile': 'My profile',
+    'who.switch': 'Switch member',
+    'm.readOnly': "{name}'s profile: only {name} (or an admin) can edit it.",
+    'm.adminEdit': "Admin mode: you are editing {name}'s profile.",
+    'm.boxHintRO': "Coloured legends are in {name}'s box. Tap a character to see its details.",
   },
 };
 

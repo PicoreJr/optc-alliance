@@ -3,6 +3,7 @@ import { t, fmtNumber, fmtDate } from '../i18n.js';
 import { DATA } from '../data.js';
 import { esc, $, $$, UnitBrowser, openModal, confirmBox, toast, debounce, cardArt } from '../ui.js';
 import { openBoxEntry, lbShort } from './box.js';
+import { openUnit } from './chars.js';
 
 let listSort = 'pseudo';
 
@@ -19,7 +20,7 @@ export function renderAlliance(main, app) {
         ${app.isAdmin ? `<button class="btn primary" data-add>${esc(t('m.add'))}</button>` : ''}
       </div>
     </div>
-    ${members.length ? `<div class="member-grid">${members.map((m) => memberCard(m)).join('')}</div>`
+    ${members.length ? `<div class="member-grid">${members.map((m) => memberCard(m, false, app.me)).join('')}</div>`
       : `<p class="empty">${esc(app.isAdmin ? t('m.noneAdmin') : t('m.none'))}</p>`}
   </section>`;
   $('[data-sort]', main).onchange = (e) => { listSort = e.target.value; renderAlliance(main, app); };
@@ -41,7 +42,7 @@ function boxCount(m) { return m.box ? Object.keys(m.box).filter((k) => /^\d+$/.t
 // Thème de la carte de membre : l'illustration d'un perso du Super Sugo-Fest.
 // Rangé dans la box sous la clé « _card » ({ u: id }) pour ne rien changer côté base.
 const CARD_KEY = '_card';
-function cardTheme(m) {
+export function cardTheme(m) {
   const c = m.box && m.box[CARD_KEY];
   const id = c && Number(c.u);
   return id && DATA.byId.has(id) ? id : null;
@@ -55,13 +56,15 @@ function legendCount(m) {
 }
 
 // preview : la même carte, non cliquable (aperçu sur la fiche du membre)
-export function memberCard(m, preview = false) {
+// meId : membre connecté sur cet appareil (sa carte porte le badge « Toi »)
+export function memberCard(m, preview = false, meId = null) {
   const art = cardTheme(m);
   const tag = preview ? 'div' : 'a';
-  return `<${tag} class="member-card ${art ? 'themed' : ''} ${preview ? 'preview' : ''}" ${preview ? '' : `href="#/member/${esc(m.id)}"`}>
+  const me = meId && m.id === meId;
+  return `<${tag} class="member-card ${art ? 'themed' : ''} ${preview ? 'preview' : ''} ${me ? 'is-me' : ''}" ${preview ? '' : `href="#/member/${esc(m.id)}"`}>
     ${art ? cardArt(art) : ''}
     <div class="mc-body">
-      <div class="mc-top"><strong>${esc(m.pseudo)}</strong>${m.level ? `<span class="badge">${esc(t('m.level'))} ${fmtNumber(m.level)}</span>` : ''}</div>
+      <div class="mc-top"><strong>${esc(m.pseudo)}${me ? ` <span class="me-badge">${esc(t('who.you'))}</span>` : ''}</strong>${m.level ? `<span class="badge">${esc(t('m.level'))} ${fmtNumber(m.level)}</span>` : ''}</div>
       <dl class="kv small">
         <div><dt>${esc(t('m.gameId'))}</dt><dd>${esc(m.game_id || '—')}</dd></div>
         <div><dt>${esc(t('m.bounty'))}</dt><dd>${m.bounty ? fmtNumber(m.bounty) : '—'}</dd></div>
@@ -115,6 +118,15 @@ function profileFields(mb) {
     <label>${esc(t('m.bounty'))}<input class="input" name="bounty" type="number" min="0" value="${mb.bounty ?? ''}" inputmode="numeric"></label>
   </div>`;
 }
+// Profil d'un autre membre : affichage simple, sans champs à modifier
+function profileView(mb) {
+  return `<dl class="kv">
+    <div><dt>${esc(t('m.pseudo'))}</dt><dd>${esc(mb.pseudo)}</dd></div>
+    <div><dt>${esc(t('m.gameId'))}</dt><dd>${esc(mb.game_id || '—')}</dd></div>
+    <div><dt>${esc(t('m.level'))}</dt><dd>${mb.level ? fmtNumber(mb.level) : '—'}</dd></div>
+    <div><dt>${esc(t('m.bounty'))}</dt><dd>${mb.bounty ? fmtNumber(mb.bounty) : '—'}</dd></div>
+  </dl>`;
+}
 function readProfile(root) {
   const v = (n) => $(`[name="${n}"]`, root).value.trim();
   return { pseudo: v('pseudo'), game_id: v('game_id'), level: v('level'), bounty: v('bounty') };
@@ -133,6 +145,9 @@ export function renderMember(main, app, id) {
   const mb = app.members.find((m) => m.id === id);
   if (!mb) { main.innerHTML = `<section class="page"><a href="#/alliance">${esc(t('m.back'))}</a><p class="empty">${esc(t('m.notFound'))}</p></section>`; return; }
   mb.box = mb.box && typeof mb.box === 'object' && !Array.isArray(mb.box) ? mb.box : {};
+  // chacun ne modifie que sa propre fiche (les admins peuvent tout modifier)
+  const canEdit = app.canEdit(mb.id);
+  const note = !canEdit ? t('m.readOnly', { name: mb.pseudo }) : mb.id !== app.me ? t('m.adminEdit', { name: mb.pseudo }) : '';
 
   main.innerHTML = `<section class="page">
     <a class="back" href="#/alliance">${esc(t('m.back'))}</a>
@@ -143,14 +158,15 @@ export function renderMember(main, app, id) {
     <div data-hero></div>
     <div class="card">
       <h2>${esc(t('m.profile'))}</h2>
-      <div data-profile>${profileFields(mb)}</div>
+      ${note ? `<p class="lock-note small">${canEdit ? '★' : '🔒'} ${esc(note)}</p>` : ''}
+      <div data-profile>${canEdit ? profileFields(mb) : profileView(mb)}</div>
       ${mb.game_id ? `<button class="btn ghost small" data-copy>${esc(t('m.copy'))} ID</button>` : ''}
       ${app.isAdmin ? `<button class="btn danger ghost small" data-del>${esc(t('m.delete'))}</button>` : ''}
-      <div class="theme-row" data-theme></div>
+      ${canEdit ? '<div class="theme-row" data-theme></div>' : ''}
     </div>
     <div class="card">
       <div class="page-head"><h2>${esc(t('m.box'))} <span class="muted" data-boxcount></span></h2></div>
-      <p class="muted small">${esc(t('m.boxHint'))}</p>
+      <p class="muted small">${esc(canEdit ? t('m.boxHint') : t('m.boxHintRO', { name: mb.pseudo }))}</p>
       <div data-box></div>
     </div>
   </section>`;
@@ -197,9 +213,9 @@ export function renderMember(main, app, id) {
 
   // thème de la carte : aperçu + choix
   const drawTheme = () => {
+    drawHero();
     const box = $('[data-theme]', main);
     if (!box) return;
-    drawHero();
     const art = cardTheme(mb);
     box.innerHTML = `<div class="theme-preview">${memberCard(mb, true)}</div>
       <div class="theme-info">
@@ -214,10 +230,10 @@ export function renderMember(main, app, id) {
       const u = await pickTheme(mb);
       if (!u) return;
       mb.box[CARD_KEY] = { u: u.id };
-      drawTheme(); save();
+      drawTheme(); save(); app.onMeChange();
     };
     const none = $('[data-no-theme]', box);
-    if (none) none.onclick = () => { delete mb.box[CARD_KEY]; drawTheme(); save(); };
+    if (none) none.onclick = () => { delete mb.box[CARD_KEY]; drawTheme(); save(); app.onMeChange(); };
   };
   drawTheme();
 
@@ -232,6 +248,7 @@ export function renderMember(main, app, id) {
     $('h1', main).textContent = mb.pseudo;
     drawTheme();
     save();
+    app.onMeChange();
   }, 400)));
   const copy = $('[data-copy]', main);
   if (copy) copy.onclick = () => navigator.clipboard.writeText(mb.game_id).then(() => toast(t('m.copied')));
@@ -256,6 +273,20 @@ export function renderMember(main, app, id) {
     save();
   }
   if (boxBrowser) boxBrowser.destroy();
+  if (!canEdit) {
+    // box d'un autre membre : on regarde seulement (un clic ouvre la fiche du perso)
+    boxBrowser = new UnitBrowser({
+      hideOwner: true, collection: true, defaults: { sort: 'collection' },
+      baseFilter: (u) => u.legend || !!mb.box[u.id],
+      ownBox: () => mb.box,
+      isSelected: (u) => !!mb.box[u.id],
+      dimUnselected: true,
+      badge: (u) => lbShort(mb.box[u.id]),
+      onPick: (u) => openUnit(u.id, app),
+    });
+    boxBrowser.mount($('[data-box]', main));
+    return;
+  }
   // Toutes les légendes sont affichées : grisées = pas encore dans la box.
   // 1er clic = sélectionner, clic suivant = détails (LB/LLB, potentiels…)
   boxBrowser = new UnitBrowser({

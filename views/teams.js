@@ -270,7 +270,8 @@ export function openEditor(app, team, opts, onSaved) {
     event_type: team.event_type || opts.events[0],
     title: team.title || '',
     boss: team.boss || '',
-    author: team.author || lastAuthor(),
+    // par défaut : le membre connecté sur cet appareil
+    author: team.author || (app.members.find((mb) => mb.id === app.me) || {}).pseudo || lastAuthor(),
     notes: team.notes || '',
   };
   draft.units = normalizeLineup({ ...team, event_type: draft.event_type });
