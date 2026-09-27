@@ -534,3 +534,77 @@ body::after {
 }
 @media (prefers-color-scheme: dark) { body::after { filter: invert(1); opacity: .06; } }
 :root { --mark: url('shishisonson.webp'); }
+
+/* ============ Bateaux ============ */
+.ship-thumb { object-fit: contain; }
+.thumb.xs { width: 26px; height: 26px; }
+.ship-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.ship-tile {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .55rem .35rem .45rem;
+  border: 1.5px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text);
+  font: inherit; cursor: pointer; text-align: center; min-width: 0;
+}
+.ship-tile:hover { border-color: var(--ink); }
+.ship-tile:hover .thumb { transform: scale(1.04); }
+.ship-tile .thumb { width: 68px; height: 68px; }
+.ship-name { font-size: .74rem; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ship-tile .sid {
+  position: absolute; left: 3px; top: 3px; font-size: .62rem; background: rgba(0, 0, 0, .65); color: #fff;
+  padding: 0 .25rem; border-radius: 3px; pointer-events: none;
+}
+.ship-tile .ubadge, .ship-row-img .ubadge { right: 3px; top: 3px; }
+.ship-tile.sel, .ship-row.sel { border: 2px solid var(--ink); box-shadow: var(--shadow); }
+.ship-tile.sel::after {
+  content: "✓"; position: absolute; top: -7px; left: -7px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--ink); color: var(--accent-text); font-size: .75rem; display: grid; place-items: center; font-weight: 700;
+}
+.ship-list { display: flex; flex-direction: column; gap: 6px; }
+.ship-row {
+  display: flex; gap: .75rem; align-items: flex-start; padding: .6rem .7rem; cursor: pointer;
+  border: 1.5px solid var(--border); border-radius: var(--radius); background: var(--surface);
+}
+.ship-row:hover, .ship-row:focus-visible { border-color: var(--ink); outline: none; }
+.ship-row-img { position: relative; flex: none; }
+.ship-row-img .thumb { width: 56px; height: 56px; }
+.ship-row-body { min-width: 0; font-size: .84rem; line-height: 1.4; }
+.ship-row-body p { margin: .15rem 0 0; }
+.ship-row-body .ship-row-name { margin: 0; font-size: .92rem; }
+.tag.pill { display: inline-block; padding: 0 .3rem; margin: 0 .05rem; border: 1px solid var(--border); border-radius: 3px; background: var(--surface-2); font-size: .92em; line-height: 1.35; }
+.fx-icon { width: 1.25em; height: 1.25em; vertical-align: text-bottom; display: inline-block; }
+
+/* fiche bateau */
+.ship-head { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start; }
+.ship-art { width: 240px; max-width: 100%; height: auto; object-fit: contain; flex: 0 1 auto; }
+.ship-art.small { width: 96px; }
+.ship-info { flex: 1; min-width: 220px; }
+.ship-info p { margin: .4rem 0; }
+.stable { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.stable th { text-align: left; color: var(--muted); font-weight: 500; padding: .35rem .4rem; border-bottom: 1.5px solid var(--border); white-space: nowrap; }
+.stable td { padding: .35rem .4rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.stable .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stable td:nth-last-child(-n+2):not(.num) { min-width: 200px; }
+.owner .ev-badge { font-size: .62rem; }
+
+/* dans les équipes */
+.ship-line { margin: 0; display: flex; align-items: center; gap: .4rem; min-width: 0; }
+.ship-line strong { flex: none; }
+.ship-chip {
+  display: inline-flex; align-items: center; gap: .4rem; max-width: 100%; min-width: 0; padding: .12rem .55rem .12rem .15rem;
+  border: 1.5px solid var(--border); border-radius: var(--radius); background: var(--surface-2); color: var(--text);
+  font: inherit; font-size: .82rem; cursor: pointer; text-align: left;
+}
+.ship-chip:hover { border-color: var(--ink); }
+.ship-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ship-field { margin: .7rem 0; }
+.field-label { font-size: .85rem; color: var(--muted); }
+.ship-pick { display: flex; gap: .5rem; align-items: center; margin-top: .25rem; max-width: 520px; }
+.ship-pick-btn {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: .6rem; padding: .35rem .6rem;
+  border: 1.5px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text);
+  font: inherit; cursor: pointer; text-align: left;
+}
+.ship-pick-btn:hover { border-color: var(--ink); }
+.ship-pick-btn.empty { border-style: dashed; color: var(--muted); }
+.ship-pick-btn .thumb { width: 44px; height: 44px; flex: none; }
+.ship-pick-btn .plus { width: 44px; height: 44px; flex: none; display: grid; place-items: center; font-size: 1.4rem; background: var(--surface-2); border-radius: var(--radius); }
+.ship-pick-btn .grow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

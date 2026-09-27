@@ -27,6 +27,20 @@ export const CONFIG = {
   ],
   // Page de détail d'un perso sur OPTC-DB (lien externe)
   optcDbUnitUrl: 'https://2shankz.github.io/optc-db.github.io/characters/#/view/',
+
+  // Bateaux : base OPTC Ships (blzn50/optc-ships), convertie en ships.json
+  // chaque jour par GitHub Actions (scripts/update-ships.mjs)
+  shipsUrls: [
+    'https://raw.githubusercontent.com/PicoreJr/optc-alliance/main/ships.json',
+    'ships.json',
+  ],
+  // Images des bateaux (CDN d'abord, puis GitHub en secours)
+  shipImageBases: [
+    'https://cdn.jsdelivr.net/gh/blzn50/optc-ships@master/public',
+    'https://raw.githubusercontent.com/blzn50/optc-ships/master/public',
+  ],
+  // Page de détail d'un bateau sur OPTC Ships (lien externe)
+  shipDbUrl: 'https://optc-ships.vercel.app/view/',
 };
 
 // ------------------------------------------------------------
