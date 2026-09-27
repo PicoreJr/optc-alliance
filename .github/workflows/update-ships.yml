@@ -26,4 +26,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Bateaux : mise à jour depuis OPTC Ships"
+          git pull --rebase
           git push
