@@ -19,7 +19,7 @@ export function renderAlliance(main, app) {
         ${app.isAdmin ? `<button class="btn primary" data-add>${esc(t('m.add'))}</button>` : ''}
       </div>
     </div>
-    ${members.length ? `<div class="member-grid">${members.map(memberCard).join('')}</div>`
+    ${members.length ? `<div class="member-grid">${members.map((m) => memberCard(m)).join('')}</div>`
       : `<p class="empty">${esc(app.isAdmin ? t('m.noneAdmin') : t('m.none'))}</p>`}
   </section>`;
   $('[data-sort]', main).onchange = (e) => { listSort = e.target.value; renderAlliance(main, app); };
