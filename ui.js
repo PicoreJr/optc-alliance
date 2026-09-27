@@ -2,7 +2,7 @@
 // et le navigateur de personnages réutilisé partout (table, box, équipes).
 import { t, fmtDate } from './i18n.js';
 import { DATA, TYPES, CLASSES, RARITIES, SUGO_GROUPS, thumbUrl, THUMB_STAGES, NOIMAGE, loadDetails, abilityText,
-  SHIPS, SHIP_STAGES, SHIP_BIG_STAGES, shipThumbUrl, shipBigUrl, shipIconUrl } from './data.js';
+  SHIPS, SHIP_STAGES, SHIP_BIG_STAGES, shipThumbUrl, shipBigUrl, shipIconUrl, ART_STAGES, artUrl } from './data.js';
 
 // ---------- bases ----------
 export function esc(s) {
@@ -56,6 +56,16 @@ export function shipThumb(id, extraClass = '', fallbackName = '') {
   const name = s ? s.name : fallbackName || `#${id}`;
   return `<img class="thumb ship-thumb ${extraClass}" loading="lazy" decoding="async" data-ship="${Number(id)}"
     src="${shipThumbUrl(Number(id))}" onerror="__shipErr(this)" alt="${esc(name)}" title="${esc(name)}">`;
+}
+// Illustration de fond (carte de membre) : CDN puis GitHub ; sans image, la carte redevient normale
+window.__artErr = (img) => {
+  const next = Number(img.dataset.stage || 0) + 1;
+  img.dataset.stage = next;
+  if (next < ART_STAGES.length) img.src = artUrl(Number(img.dataset.art), next);
+  else { const c = img.closest('.themed'); if (c) c.classList.remove('themed'); img.remove(); }
+};
+export function cardArt(id) {
+  return `<img class="card-art" alt="" decoding="async" data-art="${Number(id)}" src="${artUrl(Number(id))}" onerror="__artErr(this)">`;
 }
 export function typeBadges(u) {
   const dual = u.dual ? `<span class="badge t-DUAL">${esc(t('dual'))}</span>` : '';

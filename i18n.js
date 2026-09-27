@@ -432,6 +432,14 @@ const DICT = {
     'share.copyFail': "Copie impossible ici : utilise « Télécharger l'image »",
     'share.hint': "Le lien ouvre l'équipe sur le site (réservé à l'alliance : le code est demandé). L'image, elle, peut être envoyée partout, par exemple sur Discord.",
     'share.notFound': "Cette équipe n'existe plus : elle a peut-être été supprimée.",
+
+    // Thème de la carte de membre
+    'm.cardTheme': 'Thème de la carte',
+    'm.cardThemeHint': "Choisis l'illustration d'un perso du Super Sugo-Fest pour décorer ta carte de membre.",
+    'm.pickTheme': 'Choisir un thème',
+    'm.changeTheme': 'Changer de thème',
+    'm.noTheme': 'Retirer le thème',
+    'm.themeTitle': 'Thème de la carte de {name} (Super Sugo-Fest)',
   },
 
   en: {
@@ -864,6 +872,14 @@ const DICT = {
     'share.copyFail': 'Cannot copy here: use "Download image"',
     'share.hint': 'The link opens the team on the site (alliance only: the code is required). The image can be sent anywhere, e.g. on Discord.',
     'share.notFound': 'This team no longer exists: it may have been deleted.',
+
+    // Member card theme
+    'm.cardTheme': 'Card theme',
+    'm.cardThemeHint': 'Pick the artwork of a Super Sugo-Fest character to decorate your member card.',
+    'm.pickTheme': 'Pick a theme',
+    'm.changeTheme': 'Change theme',
+    'm.noTheme': 'Remove theme',
+    'm.themeTitle': "{name}'s card theme (Super Sugo-Fest)",
   },
 };
 

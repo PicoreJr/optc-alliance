@@ -627,3 +627,30 @@ body::after {
 .share-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: .8rem 0 .2rem; }
 .share-actions .btn { flex: 1 1 auto; }
 .team-list.single { grid-template-columns: minmax(0, 520px); }
+
+/* ============ Carte de membre à thème (illustration Super Sugo-Fest) ============ */
+.member-card { position: relative; overflow: hidden; }
+.mc-body { position: relative; z-index: 2; }
+.card-art {
+  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
+  object-fit: cover; object-position: 75% 22%; transform: scale(1.12); transform-origin: 75% 25%;
+  transition: transform .3s;
+}
+.member-card.themed { background: #0c0c0c; color: #f2efe8; min-height: 11.5rem; }
+.member-card.themed::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(8, 8, 8, .86) 0%, rgba(8, 8, 8, .55) 45%, rgba(8, 8, 8, .05) 100%),
+    linear-gradient(0deg, rgba(8, 8, 8, .5) 0%, transparent 45%);
+}
+.member-card.themed:hover .card-art { transform: scale(1.18); }
+.member-card.themed .mc-top strong { font-size: 1.12rem; text-shadow: 0 1px 3px #000; }
+.member-card.themed .kv dt, .member-card.themed .muted { color: rgba(242, 239, 232, .8); text-shadow: 0 1px 2px #000; }
+.member-card.themed .kv dd { color: #fff; text-shadow: 0 1px 2px #000; }
+.member-card.themed .badge { background: rgba(0, 0, 0, .45); color: #fff; border-color: rgba(255, 255, 255, .35); }
+.member-card.preview { cursor: default; }
+.member-card.preview:hover { transform: none; box-shadow: var(--shadow); }
+.theme-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.theme-preview { flex: 0 1 340px; min-width: 0; }
+.theme-info { flex: 1 1 200px; }
+.theme-info p { margin: 0 0 .4rem; }
+.card .theme-info .btn { margin-top: 0; }
