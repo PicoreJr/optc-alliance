@@ -1,7 +1,7 @@
 // Onglet Alliance : liste des membres et fiche d'un membre (profil + box)
 import { t, fmtNumber, fmtDate } from '../i18n.js';
 import { DATA } from '../data.js';
-import { esc, $, $$, UnitBrowser, openModal, confirmBox, toast, debounce } from '../ui.js';
+import { esc, $, $$, UnitBrowser, openModal, confirmBox, toast, debounce, cardArt } from '../ui.js';
 import { openBoxEntry, lbShort } from './box.js';
 
 let listSort = 'pseudo';
@@ -11,7 +11,7 @@ export function renderAlliance(main, app) {
   main.innerHTML = `<section class="page">
     <div class="page-head">
       <h1>${esc(t('tab.alliance'))} <span class="muted">(${members.length})</span></h1>
-      <div class="row">
+      <div class="row wrap">
         <select class="input" data-sort aria-label="${esc(t('m.sortBy'))}">
           ${[['pseudo', t('m.pseudo')], ['level', t('m.level')], ['bounty', t('m.bounty')], ['box', t('m.box')]]
             .map(([v, l]) => `<option value="${v}" ${listSort === v ? 'selected' : ''}>${esc(t('m.sortBy'))} : ${esc(l)}</option>`).join('')}
@@ -35,7 +35,17 @@ function sorter(k) {
     box: (a, b) => boxCount(b) - boxCount(a),
   }[k];
 }
-function boxCount(m) { return m.box ? Object.keys(m.box).length : 0; }
+// Seules les clés numériques de la box sont des persos (voir CARD_KEY)
+function boxCount(m) { return m.box ? Object.keys(m.box).filter((k) => /^\d+$/.test(k)).length : 0; }
+
+// Thème de la carte de membre : l'illustration d'un perso du Super Sugo-Fest.
+// Rangé dans la box sous la clé « _card » ({ u: id }) pour ne rien changer côté base.
+const CARD_KEY = '_card';
+function cardTheme(m) {
+  const c = m.box && m.box[CARD_KEY];
+  const id = c && Number(c.u);
+  return id && DATA.byId.has(id) ? id : null;
+}
 function totalLegends() { return DATA.units.filter((u) => u.legend).length; }
 function legendCount(m) {
   if (!m.box) return 0;
@@ -44,16 +54,36 @@ function legendCount(m) {
   return n;
 }
 
-function memberCard(m) {
-  return `<a class="member-card" href="#/member/${esc(m.id)}">
-    <div class="mc-top"><strong>${esc(m.pseudo)}</strong>${m.level ? `<span class="badge">${esc(t('m.level'))} ${fmtNumber(m.level)}</span>` : ''}</div>
-    <dl class="kv small">
-      <div><dt>${esc(t('m.gameId'))}</dt><dd>${esc(m.game_id || '—')}</dd></div>
-      <div><dt>${esc(t('m.bounty'))}</dt><dd>${m.bounty ? fmtNumber(m.bounty) : '—'}</dd></div>
-      <div><dt>${esc(t('m.box'))}</dt><dd>${esc(t('m.units', { n: boxCount(m) }))} · ${esc(t('m.legends', { n: legendCount(m) }))}</dd></div>
-    </dl>
-    <span class="muted small">${esc(t('m.updated', { date: fmtDate(m.updated_at) }))}</span>
-  </a>`;
+// preview : la même carte, non cliquable (aperçu sur la fiche du membre)
+function memberCard(m, preview = false) {
+  const art = cardTheme(m);
+  const tag = preview ? 'div' : 'a';
+  return `<${tag} class="member-card ${art ? 'themed' : ''} ${preview ? 'preview' : ''}" ${preview ? '' : `href="#/member/${esc(m.id)}"`}>
+    ${art ? cardArt(art) : ''}
+    <div class="mc-body">
+      <div class="mc-top"><strong>${esc(m.pseudo)}</strong>${m.level ? `<span class="badge">${esc(t('m.level'))} ${fmtNumber(m.level)}</span>` : ''}</div>
+      <dl class="kv small">
+        <div><dt>${esc(t('m.gameId'))}</dt><dd>${esc(m.game_id || '—')}</dd></div>
+        <div><dt>${esc(t('m.bounty'))}</dt><dd>${m.bounty ? fmtNumber(m.bounty) : '—'}</dd></div>
+        <div><dt>${esc(t('m.box'))}</dt><dd>${esc(t('m.units', { n: boxCount(m) }))} · ${esc(t('m.legends', { n: legendCount(m) }))}</dd></div>
+      </dl>
+      <span class="muted small">${esc(t('m.updated', { date: fmtDate(m.updated_at) }))}</span>
+    </div>
+  </${tag}>`;
+}
+
+// Choix du thème parmi les persos du Super Sugo-Fest (liste à jour avec OPTC-DB)
+function pickTheme(mb) {
+  return new Promise((resolve) => {
+    let picked = null;
+    const m = openModal({ title: esc(t('m.themeTitle', { name: mb.pseudo })), size: 'large', onClose: () => resolve(picked) });
+    new UnitBrowser({
+      baseFilter: (u) => !!u.flags.superlrr,
+      isSelected: (u) => u.id === cardTheme(mb),
+      defaults: { sort: 'idDesc' },
+      onPick: (u) => { picked = u; m.close(); },
+    }).mount(m.body);
+  });
 }
 
 function openNewMember(app) {
@@ -115,6 +145,7 @@ export function renderMember(main, app, id) {
       <div data-profile>${profileFields(mb)}</div>
       ${mb.game_id ? `<button class="btn ghost small" data-copy>${esc(t('m.copy'))} ID</button>` : ''}
       ${app.isAdmin ? `<button class="btn danger ghost small" data-del>${esc(t('m.delete'))}</button>` : ''}
+      <div class="theme-row" data-theme></div>
     </div>
     <div class="card">
       <div class="page-head"><h2>${esc(t('m.box'))} <span class="muted" data-boxcount></span></h2></div>
@@ -142,8 +173,36 @@ export function renderMember(main, app, id) {
   const updateCount = () => {
     const c = $('[data-boxcount]', main);
     if (c) c.textContent = `(${t('m.legendsOf', { n: legendCount(mb), total: totalLegends() })} · ${t('m.units', { n: boxCount(mb) })})`;
+    // l'aperçu de la carte affiche aussi le nombre de persos
+    const pv = $('[data-theme] .theme-preview', main);
+    if (pv) pv.innerHTML = memberCard(mb, true);
   };
   updateCount();
+
+  // thème de la carte : aperçu + choix
+  const drawTheme = () => {
+    const box = $('[data-theme]', main);
+    if (!box) return;
+    const art = cardTheme(mb);
+    box.innerHTML = `<div class="theme-preview">${memberCard(mb, true)}</div>
+      <div class="theme-info">
+        <p class="field-label">${esc(t('m.cardTheme'))}</p>
+        <p class="muted small">${esc(art ? DATA.byId.get(art).name : t('m.cardThemeHint'))}</p>
+        <div class="row wrap">
+          <button class="btn small" data-pick-theme>${esc(t(art ? 'm.changeTheme' : 'm.pickTheme'))}</button>
+          ${art ? `<button class="btn ghost small" data-no-theme>${esc(t('m.noTheme'))}</button>` : ''}
+        </div>
+      </div>`;
+    $('[data-pick-theme]', box).onclick = async () => {
+      const u = await pickTheme(mb);
+      if (!u) return;
+      mb.box[CARD_KEY] = { u: u.id };
+      drawTheme(); save();
+    };
+    const none = $('[data-no-theme]', box);
+    if (none) none.onclick = () => { delete mb.box[CARD_KEY]; drawTheme(); save(); };
+  };
+  drawTheme();
 
   // profil
   $$('[data-profile] input', main).forEach((inp) => inp.addEventListener('input', debounce(() => {
@@ -154,6 +213,7 @@ export function renderMember(main, app, id) {
       level: data.level ? Number(data.level) : null, bounty: data.bounty ? Number(data.bounty) : null,
     });
     $('h1', main).textContent = mb.pseudo;
+    drawTheme();
     save();
   }, 400)));
   const copy = $('[data-copy]', main);

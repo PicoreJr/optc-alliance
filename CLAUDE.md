@@ -74,6 +74,12 @@ messages de commit en français.
 - Kizuna : un événement est une « équipe » `event_type = 'kizuna_ev'` ; ses équipes ont `units.kz` + `units.stage`.
 - Toujours passer par `normalizeLineup(team)` pour lire une composition (anciens formats compris).
 
+## Modèle d'un membre (`get_all` / `save_member`)
+`{ id, pseudo, game_id, level, bounty, box, updated_at }` où `box` (jsonb libre) vaut `{ <id perso>: { lv, lb, … } }`
+plus la clé réservée `_card: { u: <id perso> }` = thème de la carte de membre (illustration d'un perso du Super
+Sugo-Fest, drapeau `superlrr`). Rangé dans la box pour ne rien changer côté base : pour compter ou parcourir les
+persos, ne garder que les clés numériques (voir `boxCount`).
+
 ## Conventions
 - Rendu par gabarits HTML (`innerHTML`) : **toute valeur dynamique passe par `esc()`** (ou `richText`/`shipText`,
   qui échappent déjà).

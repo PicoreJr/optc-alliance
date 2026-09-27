@@ -263,6 +263,12 @@ export function thumbUrl(id, stage = 0) {
   const pad = String(id).padStart(4, '0');
   return `${base}/api/images/thumbnail/${region}/${folder(id)}/${pad}.png`;
 }
+// Illustration complète (fond transparent) : CDN d'abord, puis GitHub
+export const ART_STAGES = CONFIG.imageBases.map((b) => (id) =>
+  `${b}/api/images/full/transparent/${folder(id)}/${String(id).padStart(4, '0')}.png`);
+export function artUrl(id, stage = 0) {
+  return (ART_STAGES[stage] || ART_STAGES[0])(id);
+}
 export function bigUrl(id) {
   const pad = String(id).padStart(4, '0');
   return `${CONFIG.imageBases[CONFIG.imageBases.length - 1]}/api/images/full/transparent/${folder(id)}/${pad}.png`;
