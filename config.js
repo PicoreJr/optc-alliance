@@ -105,5 +105,5 @@ export const SOCKETS = [
   'dmg', 'cd', 'bind', 'despair', 'heal', 'map', 'slot', 'poison', 'resil',
 ];
 
-// Niveaux de Limit Break
-export const LB_LEVELS = ['none', 'lb', 'lbx', 'llb', 'rainbow'];
+// Niveaux de Limit Break proposés dans la box : 1 à 5, puis Rainbow
+export const LB_LEVELS = [1, 2, 3, 4, 5, 'rainbow'];

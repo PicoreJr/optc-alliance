@@ -786,3 +786,39 @@ h1 { animation: brush .6s cubic-bezier(.3, .7, .2, 1) .08s both; }
 .member-card.is-me { outline: 3px solid var(--ink); outline-offset: 2px; }
 .lock-note { margin: 0 0 .7rem; padding: .45rem .65rem; background: var(--surface-2); border-left: 3px solid var(--ink); border-radius: var(--radius); }
 .who-actions { margin-top: .9rem; }
+
+/* ============ Box : niveau de Limit Break (LB1 à LB5, Rainbow) ============ */
+.ubadge {
+  right: 2px; top: 2px; padding: 0 .28rem; border-radius: 3px; font-size: .58rem; font-weight: 800; letter-spacing: .02em;
+  background: rgba(12, 12, 12, .88); color: #ffd35c; box-shadow: 0 0 0 1px rgba(255, 211, 92, .55);
+}
+.ubadge.rb {
+  color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, .7); box-shadow: none;
+  background: linear-gradient(90deg, #ff5f6d, #ffc371, #47e891, #3fa9f5, #b36cf5);
+}
+td .ubadge { box-shadow: none; }
+/* bordure arc-en-ciel autour des persos Rainbow */
+.uitem.rainbow {
+  border-color: transparent;
+  background: linear-gradient(var(--surface-2), var(--surface-2)) content-box,
+    linear-gradient(135deg, #ff5f6d, #ffc371, #47e891, #3fa9f5, #b36cf5) border-box;
+}
+/* choix du niveau dans la fiche du perso */
+.lb-row { margin-bottom: .9rem; }
+.lb-row .field-label { margin: 0 0 .35rem; }
+.lb-row p.small { margin: .4rem 0 0; }
+.lb-pick { display: flex; flex-wrap: wrap; gap: .35rem; }
+.lb-pick button {
+  min-width: 2.6rem; padding: .45rem .7rem; font: inherit; font-weight: 800; cursor: pointer;
+  border: 1.5px solid var(--ink); border-radius: var(--radius); background: var(--surface); color: var(--text);
+  transition: transform .12s ease, background .12s ease;
+}
+.lb-pick button:hover { transform: translateY(-1px); }
+.lb-pick button.on { background: var(--ink); color: var(--accent-text); }
+.lb-pick button.rb { border-color: transparent; background: linear-gradient(var(--surface), var(--surface)) padding-box,
+  linear-gradient(90deg, #ff5f6d, #ffc371, #47e891, #3fa9f5, #b36cf5) border-box; }
+.lb-pick button.rb.on { color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, .6);
+  background: linear-gradient(90deg, #ff5f6d, #ffc371, #47e891, #3fa9f5, #b36cf5) border-box; }
+/* sockets : les menus restent dans la fenêtre (les noms longs ne la font plus déborder) */
+.socket { min-width: 0; }
+.socket select:first-child { min-width: 0; }

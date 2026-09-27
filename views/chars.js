@@ -65,7 +65,7 @@ export function openUnit(id, app) {
         <h3>${esc(t('u.inAlliance'))} <span class="muted">(${owners.length})</span></h3>
         ${owners.length ? `<div class="owner-list">${owners.map((mb) => {
           const e = mb.box[u.id] || {};
-          const bits = [e.lv ? `${t('u.level')} ${e.lv}` : '', e.lb && e.lb !== 'none' ? lbLabel(e.lb) : ''].filter(Boolean).join(' · ');
+          const bits = [e.lv ? `${t('u.level')} ${e.lv}` : '', lbLabel(e)].filter(Boolean).join(' · ');
           return `<a class="owner" href="#/member/${esc(mb.id)}">${esc(mb.pseudo)}${bits ? ` <span class="muted">${esc(bits)}</span>` : ''}</a>`;
         }).join('')}</div>` : `<p class="muted">${esc(t('u.nobody'))}</p>`}
       </section>

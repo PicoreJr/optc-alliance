@@ -2,7 +2,7 @@
 import { t, fmtNumber, fmtDate } from '../i18n.js';
 import { DATA } from '../data.js';
 import { esc, $, $$, UnitBrowser, openModal, confirmBox, toast, debounce, cardArt } from '../ui.js';
-import { openBoxEntry, lbShort } from './box.js';
+import { openBoxEntry, lbBadge } from './box.js';
 import { openUnit } from './chars.js';
 
 let listSort = 'pseudo';
@@ -281,7 +281,7 @@ export function renderMember(main, app, id) {
       ownBox: () => mb.box,
       isSelected: (u) => !!mb.box[u.id],
       dimUnselected: true,
-      badge: (u) => lbShort(mb.box[u.id]),
+      badge: (u) => lbBadge(mb.box[u.id]),
       onPick: (u) => openUnit(u.id, app),
     });
     boxBrowser.mount($('[data-box]', main));
@@ -298,7 +298,7 @@ export function renderMember(main, app, id) {
     ownBox: () => mb.box,
     isSelected: (u) => !!mb.box[u.id],
     dimUnselected: true,
-    badge: (u) => lbShort(mb.box[u.id]),
+    badge: (u) => lbBadge(mb.box[u.id]),
     actions: `<button class="btn ghost small" data-addunits>${esc(t('m.otherUnits'))}</button>`,
     onPick: (u) => {
       if (!mb.box[u.id]) {
