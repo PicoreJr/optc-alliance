@@ -2,7 +2,7 @@
 import { t, fmtDate } from '../i18n.js';
 import { CONFIG } from '../config.js';
 import { DATA, loadDetails, getDetails, bigUrl } from '../data.js';
-import { esc, $, UnitBrowser, openModal, thumb, typeBadges, richText } from '../ui.js';
+import { esc, $, UnitBrowser, openModal, thumb, typeBadges, richText, fadeIn, seen } from '../ui.js';
 import { lbLabel } from './box.js';
 
 let browser = null;
@@ -40,7 +40,7 @@ export function openUnit(id, app) {
       <div class="unit-head">
         <div class="unit-art">
           ${thumb(u.id, 'big')}
-          <img class="art" src="${bigUrl(u.id)}" alt="" onerror="this.remove()">
+          <img class="art ${seen('b' + u.id)}" ${fadeIn('b' + u.id)} src="${bigUrl(u.id)}" alt="" onerror="this.remove()">
         </div>
         <div class="unit-info">
           <div class="badges">${typeBadges(u)} <span class="badge">${esc(u.stars)}★</span>

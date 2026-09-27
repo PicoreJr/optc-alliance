@@ -6,6 +6,7 @@ import { DATA, loadCore, loadDetails, loadShips } from './data.js';
 import { esc, $, $$, toast, openModal } from './ui.js';
 import { renderChars, refreshChars } from './views/chars.js';
 import { renderShips, teamHref } from './views/ships.js';
+import { renderHome } from './views/home.js';
 import { renderTeamPage } from './views/teams.js';
 import { renderPvp } from './views/pvp.js';
 import { renderKizuna } from './views/kizuna.js';
@@ -134,7 +135,7 @@ const MODE_TABS = ['tm', 'pka', 'coop', 'blitz'];
 function shell() {
   root.innerHTML = `
     <header class="topbar">
-      <a class="brand" href="#/chars">${esc(CONFIG.allianceName)}</a>
+      <a class="brand" href="#/home" title="${esc(t('home.title'))}">${esc(CONFIG.allianceName)}</a>
       <nav class="tabs">
         <a href="#/chars" data-tab="chars">${esc(t('tab.chars'))}</a>
         <a href="#/ships" data-tab="ships">${esc(t('tab.ships'))}</a>
@@ -156,7 +157,8 @@ function shell() {
 function route() {
   const main = document.getElementById('main');
   if (!main) return;
-  const hash = location.hash.replace(/^#\/?/, '') || 'chars';
+  // page d'accueil : « Quoi de neuf »
+  const hash = location.hash.replace(/^#\/?/, '') || 'home';
   const [page, arg, arg2] = hash.split('/').map((x) => decodeURIComponent(x || ''));
   // anciens liens « #/teams » -> onglet PvP
   if (page === 'teams') { location.replace('#/pvp'); return; }
@@ -173,11 +175,16 @@ function route() {
   if (page === 'pvp') renderPvp(main, app, arg, arg2);
   else if (page === 'kizuna') renderKizuna(main, app, arg, arg2);
   else if (MODE_TABS.includes(page)) renderMode(main, app, page);
+  else if (page === 'home') renderHome(main, app);
   else if (page === 'ships') renderShips(main, app);
   else if (page === 'team') renderTeamPage(main, app, arg);
   else if (page === 'alliance') renderAlliance(main, app);
   else if (page === 'member') renderMember(main, app, arg);
   else renderChars(main, app);
+  // la page apparaît en fondu
+  main.classList.remove('page-in');
+  void main.offsetWidth;
+  main.classList.add('page-in');
 }
 window.addEventListener('hashchange', () => { if (app.code) route(); });
 

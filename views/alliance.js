@@ -55,7 +55,7 @@ function legendCount(m) {
 }
 
 // preview : la même carte, non cliquable (aperçu sur la fiche du membre)
-function memberCard(m, preview = false) {
+export function memberCard(m, preview = false) {
   const art = cardTheme(m);
   const tag = preview ? 'div' : 'a';
   return `<${tag} class="member-card ${art ? 'themed' : ''} ${preview ? 'preview' : ''}" ${preview ? '' : `href="#/member/${esc(m.id)}"`}>
@@ -140,6 +140,7 @@ export function renderMember(main, app, id) {
       <h1>${esc(mb.pseudo)}</h1>
       <span class="save-status muted small" data-status></span>
     </div>
+    <div data-hero></div>
     <div class="card">
       <h2>${esc(t('m.profile'))}</h2>
       <div data-profile>${profileFields(mb)}</div>
@@ -179,10 +180,26 @@ export function renderMember(main, app, id) {
   };
   updateCount();
 
+  // bannière du profil : l'illustration du thème en grand (le titre simple sinon)
+  const drawHero = () => {
+    const hero = $('[data-hero]', main);
+    if (!hero) return;
+    const art = cardTheme(mb);
+    $('.page-head h1', main).classList.toggle('hidden', !!art);
+    hero.innerHTML = art ? `<div class="member-hero">${cardArt(art)}
+      <div class="mh-body">
+        <h2 class="mh-name">${esc(mb.pseudo)}</h2>
+        <p class="mh-stats">${mb.level ? `<span class="badge">${esc(t('m.level'))} ${fmtNumber(mb.level)}</span>` : ''}
+          ${mb.bounty ? `<span>${esc(t('m.bounty'))} <strong>${fmtNumber(mb.bounty)}</strong></span>` : ''}</p>
+        <p class="mh-art muted small">${esc(DATA.byId.get(art).name)}</p>
+      </div></div>` : '';
+  };
+
   // thème de la carte : aperçu + choix
   const drawTheme = () => {
     const box = $('[data-theme]', main);
     if (!box) return;
+    drawHero();
     const art = cardTheme(mb);
     box.innerHTML = `<div class="theme-preview">${memberCard(mb, true)}</div>
       <div class="theme-info">

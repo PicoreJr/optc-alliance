@@ -33,12 +33,13 @@ messages de commit en français.
 | Fichier | Rôle |
 |---|---|
 | `index.html` | Coquille de la page, charge `app.js` |
-| `app.js` | Connexion (code), barre d'onglets, routage par hash (`#/chars`, `#/ships`, `#/pvp/...`, `#/kizuna/<id>/<stage>`, `#/tm`, `#/member/<id>`, `#/team/<id>`…), état partagé `app` |
+| `app.js` | Connexion (code), barre d'onglets, routage par hash (`#/home` = accueil par défaut, `#/chars`, `#/ships`, `#/pvp/...`, `#/kizuna/<id>/<stage>`, `#/tm`, `#/member/<id>`, `#/team/<id>`…), état partagé `app` |
 | `config.js` | **Seul fichier de réglages** : nom, Supabase, URLs des sources, formats d'équipe (`FORMATS`), modes (`EVENTS`) |
 | `i18n.js` | Textes FR / EN (`t('clé', { var })`), `fmtDate`, `fmtNumber` |
 | `api.js` | Appels RPC Supabase (`login`, `get_all`, `save_team`, `save_member`…) |
 | `data.js` | Chargement persos OPTC-DB (cache IndexedDB), dates d'ajout, bateaux (`SHIPS`, `loadShips`, `shipOf`), URLs d'images |
 | `ui.js` | `esc`, `$`/`$$`, modales, toasts, vignettes (`thumb`, `shipThumb`, `shipArt`), `richText`/`shipText`, `UnitBrowser` (navigateur de persos réutilisé partout), `pickUnit` |
+| `views/home.js` | Accueil « Quoi de neuf » (lien : le nom de l'alliance en haut à gauche) : nouveaux persos, derniers bateaux, dernières équipes, membres mis à jour |
 | `views/chars.js` | Onglet Personnages + fiche perso (`openUnit`) |
 | `views/ships.js` | Onglet Bateaux, fiche bateau (`openShip`), sélecteur (`pickShip`) |
 | `views/teams.js` | Liste + éditeur d'équipes, réutilisés par tous les modes (`renderTeamList`, `openEditor`, `normalizeLineup`), page d'une équipe (`renderTeamPage`, lien partagé `#/team/<id>`) |
@@ -89,6 +90,10 @@ persos, ne garder que les clés numériques (voir `boxCount`).
   (`UnitBrowser`, `ShipBrowser`), `try/catch` silencieux autour de `localStorage`.
 - CSS : utiliser les variables (`--ink`, `--surface`, `--border`, `--radius`, `--shadow`…) pour rester compatible
   avec le thème encre et le mode sombre ; mise en page utilisable en 390 px de large, sans défilement horizontal.
+- Animations courtes (≤ 0,6 s) : titres et onglet actif « au pinceau », pages en fondu, fenêtres animées (fermeture
+  retardée de 160 ms), cartes qui se soulèvent. Tout est coupé par `prefers-reduced-motion` (fin de `style.css`).
+- Images en fondu : une nouvelle `<img>` reçoit `${fadeIn(clé)}` et la classe `${seen(clé)}` (voir `thumb` dans `ui.js`),
+  sinon elle reste invisible.
 - Nouvel onglet : lien dans `shell()` + branche dans `route()` (`app.js`) + clé `tab.<id>` dans `i18n.js`.
 - Nouveau mode de jeu / format d'équipe : `EVENTS` / `FORMATS` dans `config.js` (+ clés `ev.<id>`).
 
